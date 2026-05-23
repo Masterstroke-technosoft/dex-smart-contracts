@@ -1,0 +1,23 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+cache_path = "cache"
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 1_000_000
+evm_version = "cancun"
+ffi = true
+fs_permissions = [
+  { access = "read-write", path = "./" }
+]
+gas_reports = ["*"]
+remappings = [
+    "@openzeppelin/=lib/openzeppelin-contracts-master/",
+  "forge-std/=lib/forge-std-master/src/",
+  "@uniswap/v3-core/=lib/v3-core-main/",
+  "@uniswap/v3-periphery/=lib/v3-periphery-main/",
+  "v3-core/=lib/v3-core-main/contracts/",
+  "v3-periphery/=lib/v3-periphery-main/contracts/"
+]

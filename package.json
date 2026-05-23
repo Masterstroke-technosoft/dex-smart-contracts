@@ -1,0 +1,16 @@
+{
+  "name": "mstswap-contracts",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "coverage": "forge coverage",
+    "slither": "./script/RunSlither.sh",
+    "echidna": "./script/RunEchidna.sh"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.10"
+  }
+}

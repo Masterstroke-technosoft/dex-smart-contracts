@@ -1,0 +1,6 @@
+@openzeppelin/=lib/openzeppelin-contracts-master/
+forge-std/=lib/forge-std-master/src/
+@uniswap/v3-core/=lib/v3-core-main/
+@uniswap/v3-periphery/=lib/v3-periphery-main/
+v3-core/=lib/v3-core-main/contracts/
+v3-periphery/=lib/v3-periphery-main/contracts/
