@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.24;
+pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 import {WMST} from "../src/WMST.sol";
@@ -11,9 +11,13 @@ contract DeployMST is Script {
         uint256 pk = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(pk);
 
-        WMST wmst = new WMST();
+        WMST wmst = deploy();
         console.log("WMST deployed at:", address(wmst));
 
         vm.stopBroadcast();
+    }
+
+    function deploy() public returns (WMST wmst) {
+        wmst = new WMST();
     }
 }

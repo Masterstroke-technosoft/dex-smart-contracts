@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.24;
+pragma solidity ^0.8.24;
 
 /// @notice Minimal Echidna invariant harness. Extend with real pool/router
 ///         invariants (e.g. k never decreases on a fee-bearing swap, liquidity

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.24;
+pragma solidity ^0.8.24;
 
 /// @notice Minimal metadata descriptor for Uniswap V3 position NFTs.
 /// @dev The official SVG descriptor can be swapped in later; this keeps deployment small
