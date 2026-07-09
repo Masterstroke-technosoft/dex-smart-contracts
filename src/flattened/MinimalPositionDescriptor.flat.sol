@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// src/MinimalPositionDescriptor.sol
+
 /// @notice Minimal metadata descriptor for Rapidex V3 position NFTs.
 /// @dev The official SVG descriptor can be swapped in later; this keeps deployment small
 /// and avoids extra descriptor-only dependencies while preserving ERC721 tokenURI support.

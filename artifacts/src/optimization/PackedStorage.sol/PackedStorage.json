@@ -1,0 +1,45 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "PackedStorage",
+  "sourceName": "src/optimization/PackedStorage.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "positions",
+      "outputs": [
+        {
+          "internalType": "uint128",
+          "name": "liquidity",
+          "type": "uint128"
+        },
+        {
+          "internalType": "int24",
+          "name": "tickLower",
+          "type": "int24"
+        },
+        {
+          "internalType": "int24",
+          "name": "tickUpper",
+          "type": "int24"
+        },
+        {
+          "internalType": "uint80",
+          "name": "nonce",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561000f575f80fd5b506101518061001d5f395ff3fe608060405234801561000f575f80fd5b5060043610610029575f3560e01c806399fbab881461002d575b5f80fd5b6100bb61003b366004610104565b5f602081905290815260409020546fffffffffffffffffffffffffffffffff8116907001000000000000000000000000000000008104600290810b91730100000000000000000000000000000000000000810490910b90760100000000000000000000000000000000000000000000900469ffffffffffffffffffff1684565b604080516fffffffffffffffffffffffffffffffff9095168552600293840b60208601529190920b9083015269ffffffffffffffffffff16606082015260800160405180910390f35b5f60208284031215610114575f80fd5b503591905056fea2646970667358221220326cf1b5f6a1d9942a410c9e29c329564bd21c6d7b80c96c353a55abc3abaed964736f6c63430008180033",
+  "deployedBytecode": "0x608060405234801561000f575f80fd5b5060043610610029575f3560e01c806399fbab881461002d575b5f80fd5b6100bb61003b366004610104565b5f602081905290815260409020546fffffffffffffffffffffffffffffffff8116907001000000000000000000000000000000008104600290810b91730100000000000000000000000000000000000000810490910b90760100000000000000000000000000000000000000000000900469ffffffffffffffffffff1684565b604080516fffffffffffffffffffffffffffffffff9095168552600293840b60208601529190920b9083015269ffffffffffffffffffff16606082015260800160405180910390f35b5f60208284031215610114575f80fd5b503591905056fea2646970667358221220326cf1b5f6a1d9942a410c9e29c329564bd21c6d7b80c96c353a55abc3abaed964736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

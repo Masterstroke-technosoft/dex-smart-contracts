@@ -8,7 +8,7 @@ import {INonfungiblePositionManager} from "v3-periphery/interfaces/INonfungibleP
 import {ISwapRouter} from "v3-periphery/interfaces/ISwapRouter.sol";
 import {IQuoterV2} from "v3-periphery/interfaces/IQuoterV2.sol";
 
-/// @notice Deploys the official Uniswap V3 factory and periphery around an existing WMST.
+/// @notice Deploys the Rapidex V3 factory and periphery (built on Uniswap V3 core/periphery) around an existing WMST.
 /// @dev Set WMST_ADDRESS in .env to the address printed by DeployMST.s.sol.
 contract DeployV3Stack is Script {
     struct V3Stack {
@@ -20,7 +20,7 @@ contract DeployV3Stack is Script {
         address wmst;
     }
 
-    function run() external {
+    function run() external virtual {
         uint256 pk = vm.envUint("PRIVATE_KEY");
         address wmst = vm.envAddress("WMST_ADDRESS");
 
@@ -47,7 +47,7 @@ contract DeployV3Stack is Script {
     }
 
     function _logStack(V3Stack memory stack) internal pure {
-        console.log("UniswapV3Factory:", stack.factory);
+        console.log("RapidexV3Factory:", stack.factory);
         console.log("MinimalPositionDescriptor:", stack.descriptor);
         console.log("NonfungiblePositionManager:", stack.positionManager);
         console.log("SwapRouter:", stack.swapRouter);
@@ -56,7 +56,7 @@ contract DeployV3Stack is Script {
     }
 
     function _deployFactory() internal returns (address factory) {
-        bytes memory factoryCode = vm.getCode("UniswapV3FactoryImporter.sol:UniswapV3FactoryImporter");
+        bytes memory factoryCode = vm.getCode("RapidexV3FactoryImporter.sol:RapidexV3FactoryImporter");
         assembly {
             factory := create(0, add(factoryCode, 0x20), mload(factoryCode))
         }

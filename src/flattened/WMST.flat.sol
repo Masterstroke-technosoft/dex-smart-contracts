@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// src/WMST.sol
+
 /// @title Wrapped MST (WMST)
 /// @notice Canonical wrapped native token, modelled on WETH9. Required by the
 ///         Rapidex V3 periphery (SwapRouter, NonfungiblePositionManager) which
