@@ -1,60 +1,41 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+// Compatible with OpenZeppelin Contracts ^5.6.0
+pragma solidity ^0.8.27;
 
-/// @notice Simple mintable test ERC20 for MST testnet swap demos.
-contract TestToken {
-    string public name;
-    string public symbol;
-    uint8 public immutable decimals;
-    uint256 public totalSupply;
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {ERC20Pausable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
+contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit {
 
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    constructor(address initialOwner)
+        ERC20("tMUSD Coin", "tMUSDC")
+        Ownable(initialOwner)
+        ERC20Permit("tMUSDC")
+    {}
 
-    constructor(string memory name_, string memory symbol_, uint8 decimals_, uint256 initialSupply) {
-        name = name_;
-        symbol = symbol_;
-        decimals = decimals_;
-        _mint(msg.sender, initialSupply);
+    function pause() public onlyOwner {
+        _pause();
     }
 
-    function approve(address spender, uint256 value) external returns (bool) {
-        allowance[msg.sender][spender] = value;
-        emit Approval(msg.sender, spender, value);
-        return true;
+    function decimals() public view virtual override returns (uint8) {
+        return 6;
     }
 
-    function transfer(address to, uint256 value) external returns (bool) {
-        _transfer(msg.sender, to, value);
-        return true;
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool) {
-        if (from != msg.sender && allowance[from][msg.sender] != type(uint256).max) {
-            require(allowance[from][msg.sender] >= value, "TestToken: insufficient allowance");
-            allowance[from][msg.sender] -= value;
-        }
-        _transfer(from, to, value);
-        return true;
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
     }
 
-    function mint(address to, uint256 value) external {
-        _mint(to, value);
-    }
-
-    function _transfer(address from, address to, uint256 value) internal {
-        require(balanceOf[from] >= value, "TestToken: insufficient balance");
-        balanceOf[from] -= value;
-        balanceOf[to] += value;
-        emit Transfer(from, to, value);
-    }
-
-    function _mint(address to, uint256 value) internal {
-        totalSupply += value;
-        balanceOf[to] += value;
-        emit Transfer(address(0), to, value);
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20, ERC20Pausable)
+    {
+        super._update(from, to, value);
     }
 }
