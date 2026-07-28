@@ -40,7 +40,7 @@ Below are the deployed contract addresses on the MST Testnet (synced with the `.
 | Contract | Address |
 | :--- | :--- |
 | **WMST** | `0x9DDd1F5Ac413aBb02d642471fb0D415A75fa17Be` |
-| **USDC (tMUSDC)** | `0x51c85e958A4F0A291891B0567A0E2533032c6D70` |
+| **tMUSD (tMUSDC)** | `0xa6c20D192fAe223799AB4204f3c46476df4bfA43` |
 | **V3 Factory** | `0xacC93a1d4fB8a9953f2BEC2c8f1d75027c6289F3` |
 | **Position Manager** | `0x73E156fd96ACF6497d9f986e665Fa48F45f942F0` |
 | **Swap Router** | `0x26E11805440137E25399FC2a47CBDC8dF1e24B30` |
@@ -60,7 +60,7 @@ CHAIN_ID=91562037
 PRIVATE_KEY=<your_deployer_private_key>
 
 WMST_ADDRESS=0x9DDd1F5Ac413aBb02d642471fb0D415A75fa17Be
-TMUSD_ADDRESS=0x51c85e958A4F0A291891B0567A0E2533032c6D70
+TMUSD_ADDRESS=0xa6c20D192fAe223799AB4204f3c46476df4bfA43
 V3_FACTORY_ADDRESS=0xacC93a1d4fB8a9953f2BEC2c8f1d75027c6289F3
 POSITION_MANAGER_ADDRESS=0x73E156fd96ACF6497d9f986e665Fa48F45f942F0
 SWAP_ROUTER_ADDRESS=0x26E11805440137E25399FC2a47CBDC8dF1e24B30
@@ -131,5 +131,5 @@ Use Foundry's `cast` utility to query state directly from the MST Testnet:
     ```
 *   **Query a user's token balance:**
     ```bash
-    cast call 0x51c85e958A4F0A291891B0567A0E2533032c6D70 "balanceOf(address)(uint256)" <USER_ADDRESS> --rpc-url https://testnetrpc.mstblockchain.com
+    cast call 0xa6c20D192fAe223799AB4204f3c46476df4bfA43 "balanceOf(address)(uint256)" <USER_ADDRESS> --rpc-url https://testnetrpc.mstblockchain.com
     ```
