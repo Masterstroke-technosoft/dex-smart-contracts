@@ -1,6 +1,6 @@
-# Rapidex Smart Contracts
+# Rapiddex Smart Contracts
 
-Core smart contracts for Rapidex, a Uniswap V3-based decentralized exchange deployed on the MST Testnet. These contracts manage pool creation, swaps, liquidity positions, on-chain state storage, and wrapped native token interaction.
+Core smart contracts for Rapiddex, a Rapiddex V3-based decentralized exchange deployed on the MST Testnet. These contracts manage pool creation, swaps, liquidity positions, on-chain state storage, and wrapped native token interaction.
 
 ## Technical Details (MST Testnet)
 
@@ -22,14 +22,12 @@ All source contracts reside in the `src/` directory, while pre-flattened version
 *   **`src/MinimalPositionDescriptor.sol`**: Provides basic metadata (`tokenURI` containing the token ID) for liquidity position NFTs. A lightweight alternative to full SVG generation libraries to save gas and deployment byte size.
 *   **`src/LPStateStorage.sol`**: Stores metadata, pool addresses, and LP position parameters (liquidity, token amounts) directly on-chain. Used to coordinate state tracking across indexing and backend services.
 
-### Importer/Wrapper Contracts (Uniswap V3 Core & Periphery)
+### Core & Periphery Contracts
 
-The project leverages Uniswap V3 core and periphery implementations via library wrappers to preserve the audited codebases while targeting compatibility with Solidity `0.7.6`:
+The project leverages Rapiddex V3 core and periphery implementations with compile targets for Solidity `0.7.6`:
 
-*   **`src/RapidexV3FactoryImporter.sol`**: Extends `UniswapV3Factory` (core pool registry).
-*   **`src/NonfungiblePositionManagerImporter.sol`**: Extends `NonfungiblePositionManager` (liquidity management and ERC721 positions).
-*   **`src/SwapRouterImporter.sol`**: Extends `SwapRouter` (exact input/output routing).
-*   **`src/QuoterV2Importer.sol`**: Extends `QuoterV2` (on-chain price quotes).
+*   **`src/V3FactoryCompileTarget.sol`**: Compiles `RapiddexV3Factory` (core pool registry).
+*   **`src/V3PeripheryCompileTargets.sol`**: Compiles `NonfungiblePositionManager`, `SwapRouter`, and `QuoterV2`.
 
 ---
 
@@ -89,7 +87,7 @@ forge build
 The scripts in `script/` are used to interact with live contracts on MST Testnet.
 
 #### Set Pool Protocol Fees
-Sets the protocol fee split for a pool. (Only the `RapidexV3Factory` owner can invoke this).
+Sets the protocol fee split for a pool. (Only the `RapiddexV3Factory` owner can invoke this).
 
 ```bash
 # Set parameters in your command environment:

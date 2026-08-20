@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
 
-/// @title Wrapped MST (WMST)
-/// @notice Canonical wrapped native token, modelled on WETH9. Required by the
-///         Rapidex V3 periphery (SwapRouter, NonfungiblePositionManager) which
-///         only operate on ERC20 tokens, never the raw native asset.
+pragma solidity =0.8.27;
+
 contract WMST {
-    string public name = "Wrapped MST";
-    string public symbol = "WMST";
-    uint8 public decimals = 18;
+    string public constant name = "Wrapped MST";
+    string public constant symbol = "WMST";
+    uint8 public constant decimals = 18;
 
     event Approval(address indexed src, address indexed guy, uint256 wad);
     event Transfer(address indexed src, address indexed dst, uint256 wad);
@@ -18,21 +15,31 @@ contract WMST {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
+    bool private _locked;
+
+    modifier nonReentrant() {
+        require(!_locked, "WMST: reentrant call");
+        _locked = true;
+        _;
+        _locked = false;
+    }
+
     receive() external payable {
         deposit();
     }
 
     function deposit() public payable {
+        require(msg.value > 0, "WMST: zero deposit");
         balanceOf[msg.sender] += msg.value;
         emit Deposit(msg.sender, msg.value);
     }
 
-    function withdraw(uint256 wad) public {
+    function withdraw(uint256 wad) public nonReentrant {
         require(balanceOf[msg.sender] >= wad, "WMST: insufficient balance");
         balanceOf[msg.sender] -= wad;
+        emit Withdrawal(msg.sender, wad);
         (bool ok, ) = msg.sender.call{value: wad}("");
         require(ok, "WMST: native transfer failed");
-        emit Withdrawal(msg.sender, wad);
     }
 
     function totalSupply() public view returns (uint256) {
@@ -50,6 +57,7 @@ contract WMST {
     }
 
     function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
+        require(dst != address(0), "WMST: transfer to zero address");
         require(balanceOf[src] >= wad, "WMST: insufficient balance");
         if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
             require(allowance[src][msg.sender] >= wad, "WMST: insufficient allowance");

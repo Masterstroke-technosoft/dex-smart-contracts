@@ -1,14 +1,38 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
 
-/// @notice Minimal metadata descriptor for Rapidex V3 position NFTs.
-/// @dev The official SVG descriptor can be swapped in later; this keeps deployment small
-/// and avoids extra descriptor-only dependencies while preserving ERC721 tokenURI support.
+pragma solidity =0.8.27;
+
 contract MinimalPositionDescriptor {
+    address public owner;
     string private _baseDescription;
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event BaseDescriptionUpdated(string oldDescription, string newDescription);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "MinimalPositionDescriptor: caller is not the owner");
+        _;
+    }
+
     constructor(string memory baseDescription_) {
+        owner = msg.sender;
         _baseDescription = baseDescription_;
+        emit OwnershipTransferred(address(0), msg.sender);
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "MinimalPositionDescriptor: zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+    function setBaseDescription(string memory newDescription) external onlyOwner {
+        emit BaseDescriptionUpdated(_baseDescription, newDescription);
+        _baseDescription = newDescription;
+    }
+
+    function baseDescription() external view returns (string memory) {
+        return _baseDescription;
     }
 
     function tokenURI(address, uint256 tokenId) external view returns (string memory) {
@@ -28,7 +52,7 @@ contract MinimalPositionDescriptor {
         bytes memory buffer = new bytes(digits);
         while (value != 0) {
             digits -= 1;
-            // forge-lint: disable-next-line(unsafe-typecast)
+
             buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
             value /= 10;
         }

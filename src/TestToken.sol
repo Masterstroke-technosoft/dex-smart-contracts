@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+
+pragma solidity =0.8.27;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -9,7 +10,6 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 
 contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit {
 
-    // Blacklist scheme modeled on Circle's USDC (FiatTokenV2_2 / Blacklistable)
     address public blacklister;
     mapping(address => bool) internal _blacklisted;
 
@@ -51,8 +51,17 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit {
         _unpause();
     }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public onlyOwner notBlacklisted(to) {
+        require(to != address(0), "tMUSD: mint to zero address");
         _mint(to, amount);
+    }
+
+    function burn(uint256 value) public override notBlacklisted(msg.sender) {
+        super.burn(value);
+    }
+
+    function burnFrom(address account, uint256 value) public override notBlacklisted(msg.sender) notBlacklisted(account) {
+        super.burnFrom(account, value);
     }
 
     function isBlacklisted(address account) external view returns (bool) {
@@ -60,6 +69,7 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit {
     }
 
     function blacklist(address account) external onlyBlacklister {
+        require(account != address(0), "tMUSD: zero address");
         _blacklisted[account] = true;
         emit Blacklisted(account);
     }

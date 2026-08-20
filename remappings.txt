@@ -1,7 +1,7 @@
 lib/v3-periphery-main/:@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts-master/contracts/
 @openzeppelin/=lib/openzeppelin-contracts-master/
-@uniswap/v3-core/=lib/v3-core-main/
-@uniswap/v3-periphery/=lib/v3-periphery-main/
+@rapiddex/v3-core/=lib/v3-core-main/
+@rapiddex/v3-periphery/=lib/v3-periphery-main/
 v3-core/=lib/v3-core-main/contracts/
 v3-periphery/=lib/v3-periphery-main/contracts/

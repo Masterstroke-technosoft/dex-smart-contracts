@@ -1,9 +1,12 @@
 {
-  "name": "rapidex-contracts",
+  "name": "rapiddex-contracts",
   "private": true,
   "scripts": {
     "build": "forge build",
     "test": "forge test",
     "coverage": "forge coverage"
+  },
+  "devDependencies": {
+    "js-sha3": "^0.13.0"
   }
 }

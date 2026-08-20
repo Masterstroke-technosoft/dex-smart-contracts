@@ -19,8 +19,8 @@ ffi = false
 gas_reports = ["*"]
 remappings = [
   "@openzeppelin/=lib/openzeppelin-contracts/",
-  "@uniswap/v3-core/=lib/v3-core-main/",
-  "@uniswap/v3-periphery/=lib/v3-periphery-main/",
+  "@rapiddex/v3-core/=lib/v3-core-main/",
+  "@rapiddex/v3-periphery/=lib/v3-periphery-main/",
   "v3-core/=lib/v3-core-main/contracts/",
   "v3-periphery/=lib/v3-periphery-main/contracts/"
 ]
