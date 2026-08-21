@@ -134,9 +134,8 @@ Use Foundry's `cast` utility to query state directly from the MST Testnet:
 
 ---
 
-## Acknowledgements & License
+## Acknowledgements
 
 Rapiddex is a fork of the **Uniswap V3 Protocol** ([Uniswap V3 Core](https://github.com/Uniswap/v3-core) & [Uniswap V3 Periphery](https://github.com/Uniswap/v3-periphery)), adapted and deployed for the MST network. We gratefully acknowledge **Uniswap Labs** (© 2021 Uniswap Labs) for their pioneering work and open-source architecture.
 
-Originally released under the Business Source License 1.1 (`BUSL-1.1`), the core codebase transitioned to the **GNU General Public License v2.0 or later (GPL-2.0-or-later)** on April 1, 2023. This repository and its derivative works are licensed under **GPL-2.0-or-later**.
 
