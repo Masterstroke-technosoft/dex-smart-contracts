@@ -24,3 +24,14 @@ remappings = [
   "v3-core/=lib/v3-core-main/contracts/",
   "v3-periphery/=lib/v3-periphery-main/contracts/"
 ]
+
+[lint]
+# forge's lint resolver (solar) doesn't honor the context-scoped @openzeppelin
+# remapping in remappings.txt that v3-periphery-main relies on, so it fails to
+# resolve INonfungiblePositionManager.sol's imports when a project file (e.g.
+# a test) reaches it — even though plain compilation resolves it correctly.
+# Dependency code under lib/ shouldn't be style-linted as part of this project
+# anyway, so skip the automatic lint-on-build pass entirely rather than fight
+# solar's remapping resolution; `forge lint src test` still works standalone.
+ignore = ["lib/**"]
+lint_on_build = false
