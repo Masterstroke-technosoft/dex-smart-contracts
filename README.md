@@ -22,13 +22,6 @@ All source contracts reside in the `src/` directory, while pre-flattened version
 *   **`src/MinimalPositionDescriptor.sol`**: Provides basic metadata (`tokenURI` containing the token ID) for liquidity position NFTs. A lightweight alternative to full SVG generation libraries to save gas and deployment byte size.
 *   **`src/LPStateStorage.sol`**: Stores metadata, pool addresses, and LP position parameters (liquidity, token amounts) directly on-chain. Used to coordinate state tracking across indexing and backend services.
 
-### Core & Periphery Contracts
-
-The project leverages Rapiddex V3 core and periphery implementations with compile targets for Solidity `0.7.6`:
-
-*   **`src/V3FactoryCompileTarget.sol`**: Compiles `RapiddexV3Factory` (core pool registry).
-*   **`src/V3PeripheryCompileTargets.sol`**: Compiles `NonfungiblePositionManager`, `SwapRouter`, and `QuoterV2`.
-
 ---
 
 ## Deployed Contract Addresses
@@ -37,13 +30,14 @@ Below are the deployed contract addresses on the MST Testnet (synced with the `.
 
 | Contract | Address |
 | :--- | :--- |
-| **WMST** | `0x9DDd1F5Ac413aBb02d642471fb0D415A75fa17Be` |
-| **tMUSD (tMUSDC)** | `0xa6c20D192fAe223799AB4204f3c46476df4bfA43` |
-| **V3 Factory** | `0xacC93a1d4fB8a9953f2BEC2c8f1d75027c6289F3` |
-| **Position Manager** | `0x73E156fd96ACF6497d9f986e665Fa48F45f942F0` |
-| **Swap Router** | `0x26E11805440137E25399FC2a47CBDC8dF1e24B30` |
-| **Quoter V2** | `0x6dAF8C9B55095dB0Ca70d84F9E9b27B9D43c6C92` |
-| **LP State Storage** | `0xA4B4766f5A58331b54Fd3351D67891B123857857` |
+| **WMST** | `0xCa626248811DaD64F8284Ea63a11C2A4078795BC` |
+| **tMUSD (tMUSDC)** | `0x7f64380eAb3e93ceA8aEA7D51294F83e5f067458` |
+| **V3 Factory** | `0xD02BB60b01cB1DDca2Af9183499958E5494598f5` |
+| **Position Descriptor** | `0xe87FAAcbF4df86B2459937c1e8C71AB4810eFA9a` |
+| **Position Manager** | `0x45F540Ccd263b1511a8c3C02bcB5E64876577Ad6` |
+| **Swap Router** | `0x0D24EC10272D6081E4b95e0D3F4B03ba8a43c605` |
+| **Quoter V2** | `0xA570f13D675E05a2916885f7236ED88BeF151488` |
+| **LP State Storage** | `0xE530b2B61C0C6243502dF49A93A0622aCDa6AFC7` |
 
 ---
 
@@ -57,13 +51,14 @@ WS_RPC_URL=wss://testnetrpc.mstblockchain.com
 CHAIN_ID=91562037
 PRIVATE_KEY=<your_deployer_private_key>
 
-WMST_ADDRESS=0x9DDd1F5Ac413aBb02d642471fb0D415A75fa17Be
-TMUSD_ADDRESS=0xa6c20D192fAe223799AB4204f3c46476df4bfA43
-V3_FACTORY_ADDRESS=0xacC93a1d4fB8a9953f2BEC2c8f1d75027c6289F3
-POSITION_MANAGER_ADDRESS=0x73E156fd96ACF6497d9f986e665Fa48F45f942F0
-SWAP_ROUTER_ADDRESS=0x26E11805440137E25399FC2a47CBDC8dF1e24B30
-QUOTER_V2_ADDRESS=0x6dAF8C9B55095dB0Ca70d84F9E9b27B9D43c6C92
-LP_STATE_STORAGE_ADDRESS=0xA4B4766f5A58331b54Fd3351D67891B123857857
+WMST_ADDRESS=0xCa626248811DaD64F8284Ea63a11C2A4078795BC
+TMUSD_ADDRESS=0x7f64380eAb3e93ceA8aEA7D51294F83e5f067458
+V3_FACTORY_ADDRESS=0xD02BB60b01cB1DDca2Af9183499958E5494598f5
+POSITION_DESCRIPTOR_ADDRESS=0xe87FAAcbF4df86B2459937c1e8C71AB4810eFA9a
+POSITION_MANAGER_ADDRESS=0x45F540Ccd263b1511a8c3C02bcB5E64876577Ad6
+SWAP_ROUTER_ADDRESS=0x0D24EC10272D6081E4b95e0D3F4B03ba8a43c605
+QUOTER_V2_ADDRESS=0xA570f13D675E05a2916885f7236ED88BeF151488
+LP_STATE_STORAGE_ADDRESS=0xE530b2B61C0C6243502dF49A93A0622aCDa6AFC7
 ```
 
 ---
@@ -82,44 +77,7 @@ npm run build
 forge build
 ```
 
-### 2. Running Maintenance Scripts
-
-The scripts in `script/` are used to interact with live contracts on MST Testnet.
-
-#### Set Pool Protocol Fees
-Sets the protocol fee split for a pool. (Only the `RapiddexV3Factory` owner can invoke this).
-
-```bash
-# Set parameters in your command environment:
-export POOL_ADDRESS=0x...
-export FEE_PROTOCOL_0=4
-export FEE_PROTOCOL_1=4
-export FACTORY_OWNER_PRIVATE_KEY=0x...
-
-# Execute the script:
-forge script script/SetPoolProtocolFee.s.sol:SetPoolProtocolFee \
-  --rpc-url https://testnetrpc.mstblockchain.com \
-  --broadcast
-```
-
-#### Collect Protocol Fees
-Collects accrued protocol fees from a specific pool and routes them to a recipient address.
-
-```bash
-# Set parameters in your command environment:
-export POOL_ADDRESS=0x...
-export FEE_RECIPIENT=0x...
-export AMOUNT_0_REQUESTED=1000000000000000000
-export AMOUNT_1_REQUESTED=1000000000000000000
-export FACTORY_OWNER_PRIVATE_KEY=0x...
-
-# Execute the script:
-forge script script/CollectPoolProtocolFees.s.sol:CollectPoolProtocolFees \
-  --rpc-url https://testnetrpc.mstblockchain.com \
-  --broadcast
-```
-
-### 3. Debugging with Cast
+### 2. Debugging with Cast
 
 Use Foundry's `cast` utility to query state directly from the MST Testnet:
 
@@ -129,7 +87,7 @@ Use Foundry's `cast` utility to query state directly from the MST Testnet:
     ```
 *   **Query a user's token balance:**
     ```bash
-    cast call 0xa6c20D192fAe223799AB4204f3c46476df4bfA43 "balanceOf(address)(uint256)" <USER_ADDRESS> --rpc-url https://testnetrpc.mstblockchain.com
+    cast call 0x7f64380eAb3e93ceA8aEA7D51294F83e5f067458 "balanceOf(address)(uint256)" <USER_ADDRESS> --rpc-url https://testnetrpc.mstblockchain.com
     ```
 
 ---
