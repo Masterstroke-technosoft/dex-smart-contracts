@@ -4,10 +4,14 @@ pragma solidity =0.8.27;
 
 contract MinimalPositionDescriptor {
     address public owner;
+    address public pendingOwner;
     string private _baseDescription;
+    bool public frozen;
 
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event BaseDescriptionUpdated(string oldDescription, string newDescription);
+    event MetadataFrozen();
 
     modifier onlyOwner() {
         require(msg.sender == owner, "MinimalPositionDescriptor: caller is not the owner");
@@ -22,13 +26,27 @@ contract MinimalPositionDescriptor {
 
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "MinimalPositionDescriptor: zero address");
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    function acceptOwnership() external {
+        require(msg.sender == pendingOwner, "MinimalPositionDescriptor: caller is not pending owner");
+        emit OwnershipTransferred(owner, pendingOwner);
+        owner = pendingOwner;
+        pendingOwner = address(0);
     }
 
     function setBaseDescription(string memory newDescription) external onlyOwner {
+        require(!frozen, "MinimalPositionDescriptor: metadata frozen");
         emit BaseDescriptionUpdated(_baseDescription, newDescription);
         _baseDescription = newDescription;
+    }
+
+    function freeze() external onlyOwner {
+        require(!frozen, "MinimalPositionDescriptor: already frozen");
+        frozen = true;
+        emit MetadataFrozen();
     }
 
     function baseDescription() external view returns (string memory) {
