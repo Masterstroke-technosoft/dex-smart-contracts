@@ -17,8 +17,6 @@ contract MUSDC is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
 
     mapping(address => bool) internal _blacklisted;
 
-    /// @dev Pools and routers must be protected — freezing their token legs would strand
-    /// every user's capital that routes through them.
     mapping(address => bool) public protectedFromBlacklist;
 
     event Blacklisted(address indexed account);
@@ -81,10 +79,6 @@ contract MUSDC is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         super.burnFrom(account, value);
     }
 
-    /// @dev Overridden so the *spender* is checked against the blacklist. Without this a
-    /// blacklisted spender holding an infinite approval keeps moving tokens: OpenZeppelin's
-    /// `_spendAllowance` skips `_approve` entirely at `type(uint256).max`, so the blacklist
-    /// guard on the approval path is never reached.
     function transferFrom(address from, address to, uint256 value)
         public
         override
@@ -102,8 +96,6 @@ contract MUSDC is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         _unpause();
     }
 
-    /// @dev Disabled. `renounceOwnership` would make `unpause`, `mint` and `transferBlacklister`
-    /// permanently uncallable — a paused token could never be resumed.
     function renounceOwnership() public view override onlyOwner {
         revert RenounceDisabled();
     }
@@ -153,10 +145,6 @@ contract MUSDC is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         super._update(from, to, value);
     }
 
-    /// @dev Revocation is always allowed. Setting an allowance to zero stays callable even
-    /// while paused and even when the spender is blacklisted — otherwise blacklisting a
-    /// spender would strip holders of the only defence they have against that spender.
-    /// Granting or raising an allowance remains gated on both the pause and the blacklist.
     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal override {
         if (value != 0) {
             _requireNotPaused();

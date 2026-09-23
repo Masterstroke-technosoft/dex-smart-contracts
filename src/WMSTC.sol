@@ -53,9 +53,6 @@ contract WMSTC {
         return true;
     }
 
-    /// @dev Overwriting a live non-zero allowance lets the spender front-run the change and
-    /// spend the old value and then the new one. Callers changing a non-zero allowance should
-    /// use these two functions, or set the allowance to zero first.
     function increaseAllowance(address guy, uint256 addedValue) external returns (bool) {
         uint256 updated = allowance[msg.sender][guy] + addedValue;
         allowance[msg.sender][guy] = updated;

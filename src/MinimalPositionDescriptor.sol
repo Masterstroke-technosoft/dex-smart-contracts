@@ -20,8 +20,6 @@ contract MinimalPositionDescriptor is Ownable2Step {
         _baseDescription = baseDescription_;
     }
 
-    /// @dev Until this is called, one write changes the displayed label of every position
-    /// NFT ever minted, including positions already sold or transferred.
     function freezeMetadata() external onlyOwner {
         metadataFrozen = true;
         emit MetadataFrozen();
@@ -37,8 +35,6 @@ contract MinimalPositionDescriptor is Ownable2Step {
         return _baseDescription;
     }
 
-    /// @dev First argument is the calling position manager; upstream descriptors use it to
-    /// read pool state, this implementation doesn't and ignores it.
     function tokenURI(address, uint256 tokenId) external view returns (string memory) {
         string memory label = string.concat(_baseDescription, " #", Strings.toString(tokenId));
         string memory json = string.concat(
