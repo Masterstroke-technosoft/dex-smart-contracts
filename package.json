@@ -1,0 +1,10 @@
+{
+  "name": "rapiddex-contracts",
+  "private": true,
+  "scripts": {
+    "build": "forge build"
+  },
+  "devDependencies": {
+    "js-sha3": "^0.13.0"
+  }
+}
