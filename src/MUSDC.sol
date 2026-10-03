@@ -57,7 +57,6 @@ contract MUSDC is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         return 6;
     }
 
-    
     function mint(address to, uint256 amount) public onlyOwner notBlacklisted(to) {
         require(to != address(0), "MUSDC: mint to zero address");
         uint256 currentSupply = totalSupply();

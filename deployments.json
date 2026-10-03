@@ -1,5 +1,5 @@
 {
-  "$comment": "Canonical Rapiddex deployment manifest for MST Mainnet. Front-ends and integrations MUST read addresses from this file rather than hardcoding them. Regenerate from deployment output; do not hand-edit. Every address here was verified against on-chain runtime bytecode and by calling a distinguishing function.",
+  "$comment": "Canonical Rapiddex deployment manifest for MST Mainnet. Front-ends and integrations should read addresses from this file instead of hardcoding them. Regenerate from deployment output; do not hand-edit. Each address was verified against on-chain runtime bytecode and by calling a distinguishing function.",
   "network": {
     "name": "MST Mainnet",
     "chainId": 4646,
@@ -33,7 +33,7 @@
     },
     "NonfungiblePositionManager": {
       "address": "0xDdc9CD08Ec31e3a2e4DD169f067e367578ae6680",
-      "verifiedBy": "factory() and WETH9() resolve to the canonical factory and WMSTC; ERC721 base is the pinned OpenZeppelin v3.4.2 submodule, not the unverified vendored copy"
+      "verifiedBy": "factory() and WETH9() resolve to the canonical factory and WMSTC; ERC721 base is the pinned OpenZeppelin v3.4.2 submodule"
     },
     "SwapRouter": {
       "address": "0x3d74C817c85C3Fe463360EE3974c2715ADFFb6F7",
@@ -62,7 +62,7 @@
     {
       "address": "0xB4Fc0edEC8F699243F28Bef08767eb5e85d8C5Be",
       "contract": "RapiddexV3Factory",
-      "reason": "Superseded. Functional, but paired with the superseded token and periphery set."
+      "reason": "Superseded. Paired with the superseded token and periphery set."
     },
     {
       "address": "0x81C728F986A58fa4dA0DAe9db53e950E166DdD8A",
@@ -77,7 +77,7 @@
     {
       "address": "0x31e5fdD5009a7b9a09A50D877B7d0D55c7b7031d",
       "contract": "NonfungiblePositionManager",
-      "reason": "Superseded. Correctly wired and functional, but its ERC721 base was an unpinned, unverified vendored copy with no upstream provenance. Replaced by a redeploy against the pinned OpenZeppelin v3.4.2 submodule."
+      "reason": "Superseded. Its ERC721 base was an unpinned vendored copy with no upstream provenance. Redeployed against the pinned OpenZeppelin v3.4.2 submodule."
     },
     {
       "address": "0x392d921E37f31840696553F9Ee707d1230dF1756",
@@ -97,12 +97,12 @@
     {
       "address": "0x672826C1c56B3C1492b86f6b3A184e1ae97A0f8F",
       "contract": "NonfungiblePositionManager",
-      "reason": "Abandoned. Points at a descriptor address with no code, so tokenURI reverts permanently. The descriptor pointer is immutable and cannot be repaired."
+      "reason": "Abandoned. Points at a descriptor address with no code, so tokenURI always reverts. The descriptor pointer is immutable."
     },
     {
       "address": "0x13391cE70a97345Cf2913fE99D5C176744222F54",
       "contract": "NonfungiblePositionManager",
-      "reason": "Abandoned. Points at a descriptor whose getters revert with invalid opcode MCOPY. The descriptor pointer is immutable and cannot be repaired."
+      "reason": "Abandoned. Points at a descriptor whose getters revert with invalid opcode MCOPY. The descriptor pointer is immutable."
     },
     {
       "address": "0x678432Aa7D1EA489356De30BaFB4F1852F0748F8",
@@ -122,7 +122,7 @@
   ],
   "build": {
     "evmVersion": "shanghai",
-    "evmVersionReason": "MST Mainnet does not implement the Cancun MCOPY opcode. Raising this target produces contracts that deploy but revert on any function returning a dynamic string or bytes.",
+    "evmVersionReason": "MST Mainnet does not implement MCOPY. Raising this target produces contracts that deploy but revert on any function returning a dynamic string or bytes.",
     "solc": { "contracts": "0.8.27", "v3Fork": "0.7.6" },
     "poolInitCodeHash": "0x99b5b5ba39aa8770c10671b453f28213b5e2a2249d46e02efb426afdcd66ea88",
     "openzeppelin": [
@@ -136,7 +136,7 @@
         "version": "v3.4.2",
         "commit": "8e0296096449d9b1cd7c5631e917330635244c37",
         "path": "lib/openzeppelin-contracts-v3",
-        "usedBy": "lib/v3-periphery-main (Solidity 0.7.6) ERC721 base for NonfungiblePositionManager. Replaces a previously vendored, unpinned copy with no verifiable upstream provenance."
+        "usedBy": "lib/v3-periphery-main (Solidity 0.7.6) ERC721 base for NonfungiblePositionManager. Replaces an unpinned vendored copy with no verifiable upstream provenance."
       }
     ]
   },
@@ -144,7 +144,7 @@
     "completed": [
       "Blacklist protection set for SwapRouter and NonfungiblePositionManager"
     ],
-    "$note": "Blacklist protection must be re-applied whenever NonfungiblePositionManager is redeployed — MUSDC.protectedFromBlacklist is keyed by address and does not carry over automatically.",
+    "$note": "Blacklist protection must be re-applied whenever NonfungiblePositionManager is redeployed. MUSDC.protectedFromBlacklist is keyed by address and does not carry over.",
     "outstanding": [
       "Call MUSDC.setBlacklistProtection(pool, true) for each pool as it is created",
       "Call pool.increaseObservationCardinalityNext(n) on any pool used as a price oracle",

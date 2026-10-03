@@ -8,7 +8,7 @@ out/
 out-*/
 broadcast/
 
-# Env — .env* (not just .env) so backups/variants holding the deployer key
+# Env: .env* (not just .env) so backups/variants holding the deployer key
 # (.env.testnet.bak, .env.local, ...) can never be staged by `git add -A`.
 .env
 .env.*

@@ -2,7 +2,6 @@
 
 pragma solidity =0.8.27;
 
- 
 contract WMSTC {
     string public constant name = "Wrapped MSTC";
     string public constant symbol = "WMSTC";

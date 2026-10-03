@@ -10,40 +10,31 @@ optimizer_runs = 800
 via_ir = false
 bytecode_hash = "none"
 cbor_metadata = false
-# Foundry >=1.0 defaults this to true: each top-level CALL/CREATE runs in its own EVM frame for
-# more accurate gas isolation. Forge's Rust cheatcode VM implements this transparently, but it
-# does so by routing contract creation through an internal deployCode-style dispatch — which
-# halmos's Python-reimplemented cheatcode set does not support, making every `new X()` inside a
-# halmos check_ function fail with "Unsupported cheat code: deployCode(string)" (confirmed via
-# disassembly: isolate=true compiles `new WMSTC()` into a real CALL to the cheatcode address with
-# deployCode's selector, not a raw CREATE). Disabling it only affects local gas-metering
-# granularity in forge test/halmos runs, not the already-deployed mainnet contracts.
+# halmos cannot run with isolate=true: it compiles `new X()` into a cheatcode CALL that halmos
+# does not implement ("Unsupported cheat code: deployCode(string)"). Affects gas-metering
+# granularity in local runs only.
 isolate = false
-# MST Mainnet's EVM predates Cancun and does not implement MCOPY. Targeting "cancun" made solc
-# emit MCOPY for any function that copies a dynamic string/bytes in memory — including simply
-# returning one externally — which bricked name()/symbol() on both tokens in an earlier
-# deployment. PUSH0 (Shanghai) IS supported by the chain and is already in use by the
-# deployed 0.8.27 contracts, so "shanghai" is the correct target. Do not raise this without
-# confirming the chain's hardfork first.
+# MST Mainnet does not implement MCOPY. Under "cancun", solc emitted MCOPY for any function
+# returning a dynamic string or bytes, which broke name()/symbol() on both tokens in an earlier
+# deployment. PUSH0 (Shanghai) is supported and already in use. Check the chain's hardfork
+# before raising this.
 evm_version = "shanghai"
-# ffi (arbitrary shell exec from Solidity) stays disabled — no script needs it, and it's a
-# real risk if a future script pulls in untrusted code. fs_permissions grants read-only access
-# to the build output only, so scripts can read compiled artifacts; nothing else is readable
-# or writable.
+# ffi (shell exec from Solidity) stays disabled; no script needs it. fs_permissions grants
+# read-only access to the build output so scripts can read compiled artifacts.
 ffi = false
 fs_permissions = [
   { access = "read", path = "out" },
   { access = "read", path = "foundry.toml" },
+  # Deployment scripts write their address manifest to deployments/<chain>.json.
+  { access = "read-write", path = "deployments" },
 ]
 gas_reports = ["*"]
-# halmos (symbolic execution / formal verification, see test/formal/) requires each build
-# artifact's AST to determine source-level type info; forge omits it by default.
+# halmos needs each build artifact's AST for source-level type info; forge omits it by default.
 ast = true
-# @openzeppelin resolves to a pinned submodule for both compiler generations this project uses:
-# v5.1.0 for the 0.8.x contracts (src/), v3.4.2 for the 0.7.6 periphery fork (lib/v3-periphery-main),
-# which needs an ERC721 base predating OZ's 0.8-only releases. The v3-periphery-main mapping is
-# context-scoped (first entry) so it doesn't leak into the rest of the project.
-# The two are NOT interchangeable — keep them distinct.
+# @openzeppelin resolves to a pinned submodule per compiler generation: v5.1.0 for the 0.8.x
+# contracts in src/, v3.4.2 for the 0.7.6 periphery fork, which needs an ERC721 base predating
+# OZ's 0.8-only releases. The v3-periphery-main mapping is context-scoped (first entry) so it
+# does not leak into the rest of the project. The two are not interchangeable.
 remappings = [
   "lib/v3-periphery-main/:@openzeppelin/contracts/=lib/openzeppelin-contracts-v3/contracts/",
   "@openzeppelin/contracts/=lib/openzeppelin-contracts-v5/contracts/",
@@ -55,12 +46,9 @@ remappings = [
 ]
 
 [lint]
-# forge's lint resolver (solar) doesn't honor the context-scoped @openzeppelin
-# remapping in remappings.txt that v3-periphery-main relies on, so it fails to
-# resolve INonfungiblePositionManager.sol's imports when a project file (e.g.
-# a test) reaches it — even though plain compilation resolves it correctly.
-# Dependency code under lib/ shouldn't be style-linted as part of this project
-# anyway, so skip the automatic lint-on-build pass entirely rather than fight
-# solar's remapping resolution; `forge lint src test` still works standalone.
+# forge's lint resolver (solar) does not honor the context-scoped @openzeppelin remapping that
+# v3-periphery-main relies on, so it fails to resolve INonfungiblePositionManager.sol's imports
+# when a project file reaches it, although plain compilation resolves it. Dependency code under
+# lib/ is not linted as part of this project; `forge lint src test` still works standalone.
 ignore = ["lib/**"]
 lint_on_build = false
