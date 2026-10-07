@@ -2,51 +2,33 @@
 
 pragma solidity =0.8.27;
 
-contract MinimalPositionDescriptor {
-    address public owner;
-    address public pendingOwner;
-    string private _baseDescription;
-    bool public frozen;
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+contract MinimalPositionDescriptor is Ownable2Step {
+    string private _baseDescription;
+    bool public metadataFrozen;
+
     event BaseDescriptionUpdated(string oldDescription, string newDescription);
     event MetadataFrozen();
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "MinimalPositionDescriptor: caller is not the owner");
-        _;
-    }
+    error MetadataIsFrozen();
 
-    constructor(string memory baseDescription_) {
-        owner = msg.sender;
+    constructor(string memory baseDescription_, address initialOwner) Ownable(initialOwner) {
         _baseDescription = baseDescription_;
-        emit OwnershipTransferred(address(0), msg.sender);
     }
 
-    function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "MinimalPositionDescriptor: zero address");
-        pendingOwner = newOwner;
-        emit OwnershipTransferStarted(owner, newOwner);
-    }
-
-    function acceptOwnership() external {
-        require(msg.sender == pendingOwner, "MinimalPositionDescriptor: caller is not pending owner");
-        emit OwnershipTransferred(owner, pendingOwner);
-        owner = pendingOwner;
-        pendingOwner = address(0);
+    function freezeMetadata() external onlyOwner {
+        metadataFrozen = true;
+        emit MetadataFrozen();
     }
 
     function setBaseDescription(string memory newDescription) external onlyOwner {
-        require(!frozen, "MinimalPositionDescriptor: metadata frozen");
+        if (metadataFrozen) revert MetadataIsFrozen();
         emit BaseDescriptionUpdated(_baseDescription, newDescription);
         _baseDescription = newDescription;
-    }
-
-    function freeze() external onlyOwner {
-        require(!frozen, "MinimalPositionDescriptor: already frozen");
-        frozen = true;
-        emit MetadataFrozen();
     }
 
     function baseDescription() external view returns (string memory) {
@@ -54,27 +36,16 @@ contract MinimalPositionDescriptor {
     }
 
     function tokenURI(address, uint256 tokenId) external view returns (string memory) {
-        return string.concat(_baseDescription, " #", _toString(tokenId));
-    }
-
-    function _toString(uint256 value) private pure returns (string memory) {
-        if (value == 0) return "0";
-
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-
-        return string(buffer);
+        string memory label = string.concat(_baseDescription, " #", Strings.toString(tokenId));
+        string memory json = string.concat(
+            '{"name":"',
+            label,
+            '","description":"',
+            _baseDescription,
+            '. This NFT represents a liquidity position in a Rapiddex V3 pool. The owner can modify or redeem the position.","attributes":[{"trait_type":"Token ID","value":"',
+            Strings.toString(tokenId),
+            '"}]}'
+        );
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
     }
 }
