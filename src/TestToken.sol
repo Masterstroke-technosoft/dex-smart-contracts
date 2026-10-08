@@ -16,7 +16,6 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
     mapping(address => bool) internal _blacklisted;
     mapping(address => bool) public isProtectedFromBlacklist;
 
-    // 0 = uncapped.
     uint256 public mintCap;
 
     event Blacklisted(address indexed account);
@@ -46,7 +45,7 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
     constructor(address initialOwner)
         ERC20("tMUSD Coin", "tMUSDC")
         Ownable(initialOwner)
-        ERC20Permit("tMUSDC")
+        ERC20Permit("tMUSD Coin")
     {
         blacklister = initialOwner;
         emit BlacklisterChanged(initialOwner);
@@ -64,7 +63,6 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         _unpause();
     }
 
-    // Disabled: renouncing while paused would brick pause/unpause/updateBlacklister forever.
     function renounceOwnership() public view override onlyOwner {
         revert OwnershipRenunciationDisabled();
     }
@@ -126,6 +124,14 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         emit BlacklisterChanged(blacklister);
     }
 
+    function approve(address spender, uint256 value) public override returns (bool) {
+        require(
+            value == 0 || allowance(_msgSender(), spender) == 0,
+            "tMUSD: reset allowance to zero first"
+        );
+        return super.approve(spender, value);
+    }
+
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
         _approve(_msgSender(), spender, allowance(_msgSender(), spender) + addedValue);
         return true;
@@ -149,18 +155,18 @@ contract tMUSD is ERC20, ERC20Burnable, ERC20Pausable, Ownable2Step, ERC20Permit
         super._update(from, to, value);
     }
 
-    // whenNotPaused here also blocks permit(), which routes through _approve.
     function _approve(address owner, address spender, uint256 value, bool emitEvent)
         internal
         override
-        whenNotPaused
-        notBlacklisted(owner)
-        notBlacklisted(spender)
     {
+        if (value != 0) {
+            _requireNotPaused();
+            if (_blacklisted[owner]) revert AccountBlacklisted(owner);
+            if (_blacklisted[spender]) revert AccountBlacklisted(spender);
+        }
         super._approve(owner, spender, value, emitEvent);
     }
 
-    // Catches the infinite-allowance case, where OpenZeppelin skips _approve entirely.
     function _spendAllowance(address owner, address spender, uint256 value)
         internal
         override

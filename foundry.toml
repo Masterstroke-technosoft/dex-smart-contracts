@@ -16,6 +16,11 @@ evm_version = "cancun"
 # vm.readFile/vm.writeFile calls exist) — disabled since neither is needed
 # and both are a real risk if a future script pulls in untrusted code.
 ffi = false
+# Deployment scripts write their address manifest here, and nowhere else.
+fs_permissions = [
+  { access = "read", path = "out" },
+  { access = "read-write", path = "deployments" },
+]
 gas_reports = ["*"]
 remappings = [
   "@openzeppelin/=lib/openzeppelin-contracts/",

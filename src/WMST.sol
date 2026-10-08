@@ -35,6 +35,7 @@ contract WMST {
         balanceOf[msg.sender] += msg.value;
         _totalSupply += msg.value;
         emit Deposit(msg.sender, msg.value);
+        emit Transfer(address(0), msg.sender, msg.value);
     }
 
     function withdraw(uint256 wad) public nonReentrant {
@@ -42,6 +43,7 @@ contract WMST {
         balanceOf[msg.sender] -= wad;
         _totalSupply -= wad;
         emit Withdrawal(msg.sender, wad);
+        emit Transfer(msg.sender, address(0), wad);
         (bool ok, ) = msg.sender.call{value: wad}("");
         require(ok, "WMST: native transfer failed");
     }
@@ -51,6 +53,10 @@ contract WMST {
     }
 
     function approve(address guy, uint256 wad) public returns (bool) {
+        require(
+            wad == 0 || allowance[msg.sender][guy] == 0,
+            "WMST: reset allowance to zero first"
+        );
         allowance[msg.sender][guy] = wad;
         emit Approval(msg.sender, guy, wad);
         return true;

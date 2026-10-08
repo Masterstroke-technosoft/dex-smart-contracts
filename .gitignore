@@ -6,8 +6,10 @@ cache/
 out/
 broadcast/
 
-# Env
+# Env - .env* so backups/variants holding the deployer key can never be staged
 .env
+.env.*
+*.env
 
 # Logs
 *.log
@@ -15,3 +17,6 @@ broadcast/
 # OS
 .DS_Store
 Thumbs.db
+
+# Deployments
+deployments/

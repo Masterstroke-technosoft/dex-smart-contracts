@@ -2,79 +2,101 @@
 
 pragma solidity =0.8.27;
 
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
+interface IPositionManagerView {
+    function positions(uint256 tokenId)
+        external
+        view
+        returns (
+            uint96 nonce,
+            address operator,
+            address token0,
+            address token1,
+            uint24 fee,
+            int24 tickLower,
+            int24 tickUpper,
+            uint128 liquidity,
+            uint256 feeGrowthInside0LastX128,
+            uint256 feeGrowthInside1LastX128,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        );
+}
+
+interface IERC20Symbol {
+    function symbol() external view returns (string memory);
+}
+
 contract MinimalPositionDescriptor {
-    address public owner;
-    address public pendingOwner;
-    string private _baseDescription;
-    bool public frozen;
+    function tokenURI(address positionManager, uint256 tokenId) external view returns (string memory) {
+        (
+            ,
+            ,
+            address token0,
+            address token1,
+            uint24 fee,
+            int24 tickLower,
+            int24 tickUpper,
+            uint128 liquidity,
+            ,
+            ,
+            ,
+        ) = IPositionManagerView(positionManager).positions(tokenId);
 
-    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event BaseDescriptionUpdated(string oldDescription, string newDescription);
-    event MetadataFrozen();
+        string memory pair = string.concat(_symbol(token0), "/", _symbol(token1));
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "MinimalPositionDescriptor: caller is not the owner");
-        _;
+        string memory json = string.concat(
+            '{"name":"RapidDex ',
+            pair,
+            " ",
+            _feeLabel(fee),
+            " #",
+            Strings.toString(tokenId),
+            '","description":"RapidDex V3 concentrated liquidity position. All values are read from the position manager on-chain.","attributes":[',
+            '{"trait_type":"Pair","value":"',
+            pair,
+            '"},{"trait_type":"Token0","value":"',
+            Strings.toChecksumHexString(token0),
+            '"},{"trait_type":"Token1","value":"',
+            Strings.toChecksumHexString(token1),
+            '"},{"trait_type":"Fee","value":"',
+            _feeLabel(fee),
+            '"},',
+            '{"trait_type":"Tick Lower","value":"',
+            Strings.toStringSigned(tickLower),
+            '"},{"trait_type":"Tick Upper","value":"',
+            Strings.toStringSigned(tickUpper),
+            '"},{"trait_type":"Liquidity","value":"',
+            Strings.toString(liquidity),
+            '"}]}'
+        );
+
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
     }
 
-    constructor(string memory baseDescription_) {
-        owner = msg.sender;
-        _baseDescription = baseDescription_;
-        emit OwnershipTransferred(address(0), msg.sender);
+    function _symbol(address token) private view returns (string memory) {
+        try IERC20Symbol(token).symbol() returns (string memory s) {
+            if (bytes(s).length != 0) return s;
+        } catch {}
+        return Strings.toChecksumHexString(token);
     }
 
-    function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "MinimalPositionDescriptor: zero address");
-        pendingOwner = newOwner;
-        emit OwnershipTransferStarted(owner, newOwner);
-    }
+    function _feeLabel(uint24 fee) private pure returns (string memory) {
+        uint256 whole = uint256(fee) / 10000;
+        uint256 frac = uint256(fee) % 10000;
+        if (frac == 0) return string.concat(Strings.toString(whole), "%");
 
-    function acceptOwnership() external {
-        require(msg.sender == pendingOwner, "MinimalPositionDescriptor: caller is not pending owner");
-        emit OwnershipTransferred(owner, pendingOwner);
-        owner = pendingOwner;
-        pendingOwner = address(0);
-    }
-
-    function setBaseDescription(string memory newDescription) external onlyOwner {
-        require(!frozen, "MinimalPositionDescriptor: metadata frozen");
-        emit BaseDescriptionUpdated(_baseDescription, newDescription);
-        _baseDescription = newDescription;
-    }
-
-    function freeze() external onlyOwner {
-        require(!frozen, "MinimalPositionDescriptor: already frozen");
-        frozen = true;
-        emit MetadataFrozen();
-    }
-
-    function baseDescription() external view returns (string memory) {
-        return _baseDescription;
-    }
-
-    function tokenURI(address, uint256 tokenId) external view returns (string memory) {
-        return string.concat(_baseDescription, " #", _toString(tokenId));
-    }
-
-    function _toString(uint256 value) private pure returns (string memory) {
-        if (value == 0) return "0";
-
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
+        uint256 digits = 4;
+        while (frac % 10 == 0) {
+            frac /= 10;
+            digits--;
         }
-
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
+        string memory fracStr = Strings.toString(frac);
+        while (bytes(fracStr).length < digits) {
+            fracStr = string.concat("0", fracStr);
         }
-
-        return string(buffer);
+        return string.concat(Strings.toString(whole), ".", fracStr, "%");
     }
 }
