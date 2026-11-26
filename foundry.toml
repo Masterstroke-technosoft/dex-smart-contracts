@@ -10,15 +10,35 @@ optimizer_runs = 800
 via_ir = false
 bytecode_hash = "none"
 cbor_metadata = false
-evm_version = "cancun"
-# ffi (arbitrary shell exec from Solidity) and broad fs read-write were both
-# enabled but unused by any script in this repo (verified: no vm.ffi/
-# vm.readFile/vm.writeFile calls exist) — disabled since neither is needed
-# and both are a real risk if a future script pulls in untrusted code.
+# halmos cannot run with isolate=true: it compiles `new X()` into a cheatcode CALL that halmos
+# does not implement ("Unsupported cheat code: deployCode(string)"). Affects gas-metering
+# granularity in local runs only.
+isolate = false
+# MST Mainnet does not implement MCOPY. Under "cancun", solc emitted MCOPY for any function
+# returning a dynamic string or bytes, which broke name()/symbol() on both tokens in an earlier
+# deployment. PUSH0 (Shanghai) is supported and already in use. Check the chain's hardfork
+# before raising this.
+evm_version = "shanghai"
+# ffi (shell exec from Solidity) stays disabled; no script needs it. fs_permissions grants
+# read-only access to the build output so scripts can read compiled artifacts.
 ffi = false
+fs_permissions = [
+  { access = "read", path = "out" },
+  { access = "read", path = "foundry.toml" },
+  # Deployment scripts write their address manifest to deployments/<chain>.json.
+  { access = "read-write", path = "deployments" },
+]
 gas_reports = ["*"]
+# halmos needs each build artifact's AST for source-level type info; forge omits it by default.
+ast = true
+# @openzeppelin resolves to a pinned submodule per compiler generation: v5.1.0 for the 0.8.x
+# contracts in src/, v3.4.2 for the 0.7.6 periphery fork, which needs an ERC721 base predating
+# OZ's 0.8-only releases. The v3-periphery-main mapping is context-scoped (first entry) so it
+# does not leak into the rest of the project. The two are not interchangeable.
 remappings = [
-  "@openzeppelin/=lib/openzeppelin-contracts/",
+  "lib/v3-periphery-main/:@openzeppelin/contracts/=lib/openzeppelin-contracts-v3/contracts/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts-v5/contracts/",
+  "@openzeppelin/=lib/openzeppelin-contracts-v5/",
   "@rapiddex/v3-core/=lib/v3-core-main/",
   "@rapiddex/v3-periphery/=lib/v3-periphery-main/",
   "v3-core/=lib/v3-core-main/contracts/",
@@ -26,12 +46,9 @@ remappings = [
 ]
 
 [lint]
-# forge's lint resolver (solar) doesn't honor the context-scoped @openzeppelin
-# remapping in remappings.txt that v3-periphery-main relies on, so it fails to
-# resolve INonfungiblePositionManager.sol's imports when a project file (e.g.
-# a test) reaches it — even though plain compilation resolves it correctly.
-# Dependency code under lib/ shouldn't be style-linted as part of this project
-# anyway, so skip the automatic lint-on-build pass entirely rather than fight
-# solar's remapping resolution; `forge lint src test` still works standalone.
+# forge's lint resolver (solar) does not honor the context-scoped @openzeppelin remapping that
+# v3-periphery-main relies on, so it fails to resolve INonfungiblePositionManager.sol's imports
+# when a project file reaches it, although plain compilation resolves it. Dependency code under
+# lib/ is not linted as part of this project; `forge lint src test` still works standalone.
 ignore = ["lib/**"]
 lint_on_build = false

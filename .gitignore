@@ -3,11 +3,15 @@ node_modules/
 
 # Foundry
 cache/
+cache-*/
 out/
+out-*/
 broadcast/
 
-# Env
+# Env: .env* (not just .env) so backups/variants holding the deployer key
+# (.env.testnet.bak, .env.local, ...) can never be staged by `git add -A`.
 .env
+.env.*
 
 # Logs
 *.log

@@ -47,10 +47,13 @@ contract WMSTC {
     }
 
     function approve(address guy, uint256 wad) public returns (bool) {
-        require(
-            wad == 0 || allowance[msg.sender][guy] == 0,
-            "WMSTC: reset allowance to zero first"
-        );
+        allowance[msg.sender][guy] = wad;
+        emit Approval(msg.sender, guy, wad);
+        return true;
+    }
+
+    function compareAndApprove(address guy, uint256 expected, uint256 wad) external returns (bool) {
+        require(allowance[msg.sender][guy] == expected, "WMSTC: allowance changed");
         allowance[msg.sender][guy] = wad;
         emit Approval(msg.sender, guy, wad);
         return true;
