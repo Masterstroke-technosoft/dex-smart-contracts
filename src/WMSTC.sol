@@ -52,6 +52,13 @@ contract WMSTC {
         return true;
     }
 
+    function compareAndApprove(address guy, uint256 expected, uint256 wad) external returns (bool) {
+        require(allowance[msg.sender][guy] == expected, "WMSTC: allowance changed");
+        allowance[msg.sender][guy] = wad;
+        emit Approval(msg.sender, guy, wad);
+        return true;
+    }
+
     function increaseAllowance(address guy, uint256 addedValue) external returns (bool) {
         uint256 updated = allowance[msg.sender][guy] + addedValue;
         allowance[msg.sender][guy] = updated;

@@ -1,202 +1,235 @@
 # Rapiddex Smart Contracts
 
-Core smart contracts for Rapiddex, a Uniswap V3-based decentralized exchange on **MST Mainnet**.
-These contracts manage pool creation, swaps, liquidity positions, on-chain state storage, and
-wrapped native token interaction.
+Core smart contracts for Rapiddex, a Rapiddex V3-based decentralized exchange deployed on MST Mainnet. These contracts manage pool creation, swaps, liquidity positions, and wrapped native token interaction.
 
-> Addresses in this file are generated from deployment output and verified against on-chain
-> runtime bytecode. Do not hand-edit them. [`deployments.json`](./deployments.json) is the
-> canonical machine-readable manifest that front-ends and integrations should read.
+## Technical Details (MST Mainnet)
 
----
+Read these from [`deployments.json`](./deployments.json) rather than copying them;
+the values below are a convenience copy of its `network` block.
 
-## Network
-
-- **Network name**: MST Mainnet
-- **Chain ID**: `4646` (`0x1226`)
-- **Native currency**: MSTC
+- **Network Name**: MST Mainnet
+- **Chain ID**: `4646`
+- **Native Currency**: `MSTC`
 - **RPC URL**: `https://mariorpc.mstblockchain.com`
 - **WS RPC URL**: `wss://mariorpc.mstblockchain.com`
 
 ---
 
-## Contracts
+## Contract Directory Structure
 
-All source contracts live in `src/`.
+All source contracts reside in the `src/` directory. Flattened copies are not kept in the repo: `forge verify-contract` submits standard-JSON input directly, and a checked-in flattened copy only drifts from the source it claims to mirror. Run `forge flatten src/<Contract>.sol` if an explorer ever needs one.
 
-* **`src/WMSTC.sol`** (`Wrapped MSTC`, `WMSTC`): canonical wrapped native token, modelled on WETH9.
-  The periphery operates only on ERC-20 tokens, so wrapping is required to trade the native
-  currency. The periphery refers to this address internally as `WETH9`; that is upstream Uniswap
-  naming, not a second token.
-* **`src/MUSDC.sol`** (`MUSD Coin`, `MUSDC`): six-decimal stablecoin used to bootstrap liquidity.
-  Owner-controlled minting bounded by an immutable `maxSupply`, plus pausing and a blacklist.
-* **`src/MinimalPositionDescriptor.sol`**: ERC-721 metadata for liquidity position NFTs, returned
-  as a `data:application/json;base64` URI. A lightweight alternative to full on-chain SVG
-  generation. Metadata can be locked permanently with `freezeMetadata()`.
-* **`src/LPStateStorage.sol`**: owner-written snapshot of a pool address and one LP position,
-  consumed by indexing and backend services. Not read by any on-chain contract.
+### Core Contracts
 
-The Uniswap V3 core and periphery forks are vendored under `lib/v3-core-main` and
-`lib/v3-periphery-main` and compile under Solidity 0.7.6.
+*   **`src/WMSTC.sol`** (`Wrapped MSTC`): Canonical wrapped native MSTC token, modeled on WETH9. Periphery contracts operate exclusively on ERC20 tokens, making `WMSTC` a requirement to interact with native MSTC on the platform. Diverges from WETH9 deliberately: `deposit` reverts on zero value and `transferFrom` reverts on a zero destination.
+*   **`src/MinimalPositionDescriptor.sol`**: Metadata for liquidity position NFTs, returned as a `data:application/json;base64` URI. A lightweight alternative to full SVG generation libraries to save gas and deployment byte size. `freezeMetadata()` makes the base description permanently immutable.
+*   **`src/RapidEXFeeRouter.sol`**: Optional fee-taking wrapper in front of `SwapRouter`. Takes a protocol fee (hard-capped at `MAX_FEE_BPS` = 100 bps) off the input token, then forwards the net amount to the router. Fee decreases apply immediately; increases must pass a 2-day timelock. Built and tested, **not yet deployed** — it is absent from `deployments.json`.
+
+### The quote asset is not ours
+
+The USD side of every pool is **USDC.e** — `Bridged USDC (Onestable Limited)`
+at `0x349d9836dd52c25e61Ae745e3da0F8989De63745`, a third-party Circle
+FiatTokenV2 behind an upgradeable proxy. There is no source file for it here
+and RapidEX has no control over it.
+
+This replaced `src/MUSDC.sol`, RapidEX's own mock stablecoin, which is retired
+(see `doNotUse` in [`deployments.json`](./deployments.json)). Retiring it
+removed six audit findings outright — they were all specific to that token —
+but it did **not** remove the underlying risks; it moved them to an issuer
+RapidEX cannot constrain:
+
+| | MUSDC (retired) | USDC.e (now) |
+| :--- | :--- | :--- |
+| Who can mint | RapidEX admin, capped by `maxSupply` | Onestable Limited, uncapped by us |
+| Who can pause | RapidEX admin | Onestable Limited |
+| Who can blacklist | RapidEX blacklister | Onestable Limited |
+| Pool freeze protection | `protectedFromBlacklist` exempted pools | **None. No exemption mechanism exists** |
+| Upgradeable | No | **Yes, by the issuer** |
+| `approve` race fix | `compareAndApprove` | Not available, and we cannot add it |
+
+The two rows in bold are real, live exposures with no mitigation on our side:
+Onestable Limited can blacklist a RapidEX pool and strand both sides of its
+liquidity, and can change the token's logic under us. `script/SetupPools.s.sol`
+feature-detects the missing exemption function and skips that step rather than
+reverting. These are recorded as `risks` on the USDC.e entry in
+`deployments.json`.
 
 ---
 
-## Deployed addresses
+## Allowance Model
 
-| Contract | Address |
-| :--- | :--- |
-| **WMSTC** | `0x56EdE2EbC789fD31f978DdA79D54d6B9e42f9eCD` |
-| **MUSDC** | `0x3ac2105Fe12e4c75B3A6e5e5508A3F6716A9e8Ee` |
-| **RapiddexV3Factory** | `0xd6987F8CabE051a73c8f5e0D62bb9F8E8D1DE478` |
-| **MinimalPositionDescriptor** | `0xFeFE24529574df0247b32027118675a62bc0451E` |
-| **NonfungiblePositionManager** | `0xDdc9CD08Ec31e3a2e4DD169f067e367578ae6680` |
-| **SwapRouter** | `0x3d74C817c85C3Fe463360EE3974c2715ADFFb6F7` |
-| **QuoterV2** | `0x1350EfE8B3cd9cB0cb6D8c18cFF517dCc34e0C38` |
-| **LPStateStorage** | `0x1D966C1fFA4733bB609dEc55D749437bc9DDE285` |
+This covers **WMSTC**, the only token in a RapidEX pool that RapidEX controls.
+USDC.e is third-party: its `approve` is a plain ERC-20 overwrite, the sandwich
+below applies to it, and nothing here can change that — the same exposure
+every USDC integration carries.
 
-Every address above was verified after deployment: runtime bytecode compared byte-for-byte
-against the compiled source, immutables checked, and a distinguishing function called on each.
+WMSTC is **ERC-20 compliant**: `approve` overwrites whatever allowance is
+already there. It additionally exposes a race-free path:
 
-### Superseded (do not integrate against these)
-
-Earlier deployments remain live on-chain and will accept liquidity, but are defective or
-abandoned. They are indistinguishable from the canonical contracts by on-chain properties alone
-(same factory, same wrapped token, same ERC-721 name and symbol), so integrations must resolve
-addresses from `deployments.json` rather than by discovery. The full annotated list is in that
-file under `doNotUse`; the two most dangerous are position managers whose metadata can never be
-repaired, because `NonfungiblePositionManager._tokenDescriptor` is immutable:
-
-| Address | Contract | Problem |
-| :--- | :--- | :--- |
-| `0x672826C1c56B3C1492b86f6b3A184e1ae97A0f8F` | NonfungiblePositionManager | descriptor address has no code |
-| `0x13391cE70a97345Cf2913fE99D5C176744222F54` | NonfungiblePositionManager | descriptor getters revert |
-| `0x31e5fdD5009a7b9a09A50D877B7d0D55c7b7031d` | NonfungiblePositionManager | functional, but its ERC721 base was an unpinned copy with no upstream provenance; see [Dependencies](#dependencies) |
-
----
-
-## Build target
-
-`foundry.toml` pins `evm_version = "shanghai"`. **Do not raise this without confirming the chain's
-hardfork first.**
-
-MST Mainnet's EVM predates Cancun and does not implement `MCOPY`. Solidity 0.8.24+ emits `MCOPY`
-whenever a function copies a dynamic `string` or `bytes` in memory, including when returning one
-from an external function. Building against `cancun` produces contracts that deploy successfully
-but revert with `invalid opcode: MCOPY` on any metadata read. An earlier deployment's `name()` and
-`symbol()` were broken this way.
-
-`PUSH0` (Shanghai) is supported by the chain and is already in use, so `shanghai` is correct.
-
-**Before any redeploy, re-check two things.** Neither has an automated guard:
-1. `evm_version` in `foundry.toml` is still `"shanghai"`, not `"cancun"` or higher.
-2. `POOL_INIT_CODE_HASH` in `lib/v3-periphery-main/contracts/libraries/PoolAddress.sol` still
-   matches `keccak256(forge inspect RapiddexV3Pool bytecode)`. A stale hash makes the router and
-   position manager address pools that do not exist, with no failure until a user tries to trade.
-
-### Dependencies
-
-OpenZeppelin is pinned as two git submodules, matching the project's two Solidity generations.
-Both are tagged upstream releases, not vendored copies:
-
-| Submodule | Version | Used by |
-| :--- | :--- | :--- |
-| `lib/openzeppelin-contracts-v5` | v5.1.0 (`69c8def5`) | `src/` (0.8.x): `MUSDC`, `MinimalPositionDescriptor` |
-| `lib/openzeppelin-contracts-v3` | v3.4.2 (`8e029609`) | `lib/v3-periphery-main` (0.7.6): `NonfungiblePositionManager`'s ERC-721 base |
-
-The v3.4.2 pin replaced an earlier vendored copy that shared the same file layout and interfaces
-but had no verifiable upstream provenance: no version tag, no commit reference, and 20–100% of
-each file's content differed from any real OpenZeppelin release once compared. It was traced and
-found not exploitable, and replaced anyway, since a pinned release is a stronger position than a
-clean trace. The two submodules are **not** interchangeable; a context-scoped remapping in
-`foundry.toml` keeps them apart.
-
-Clone with submodules:
-
-```bash
-git clone --recursive <repo>
-# or, in an existing clone:
-git submodule update --init --recursive
+```solidity
+compareAndApprove(address spender, uint256 expected, uint256 value)
+increaseAllowance(address spender, uint256 addedValue)
+decreaseAllowance(address spender, uint256 subtractedValue)
 ```
 
+**Use `compareAndApprove` to change an allowance that is already non-zero.**
+It reverts unless the allowance is still exactly `expected`, which is what
+closes the classic approval sandwich: a spender who front-runs your change to
+spend the old allowance moves it off `expected`, so your new approval reverts
+instead of stacking on top of the spend.
+
+Requiring `approve` to pass through zero — a pattern this repo used earlier —
+does **not** close that hole. The front-runner's drain leaves the allowance at
+zero, the following zero→new write is perfectly legal, and the spender still
+collects old + new. It only made the attack visible, at the cost of breaking
+every integrator that did not reset first.
+
+`permit` (EIP-2612) is an absolute set, exactly like `approve`, as the standard
+specifies. Signed approvals carry no race-free variant; holders who need one
+use `compareAndApprove`.
+
+> ⚠️ **The live WMSTC predates this.** The deployed contract still enforces the
+> old zero-first `approve` and has no `compareAndApprove`. Callers must keep
+> using reset-then-approve against mainnet until WMSTC is redeployed — see
+> `sourceDrift` in [`deployments.json`](./deployments.json). USDC.e will never
+> gain `compareAndApprove`; it is not ours to change.
+
 ---
 
-## Environment setup
+## Admin Model
 
-Create a `.env` file in the root of this folder. It is gitignored (`.env*`), and must never be
-committed.
+**RapidEX is single-admin by design.** One externally owned key holds V3
+factory ownership (the protocol fee switch), descriptor ownership and FeeRouter
+ownership. This is the intended operating model — not a temporary state on the
+way to shared custody — and multisig or timelocked governance is deliberately
+declined.
+
+Retiring MUSDC shrank this surface considerably: **RapidEX no longer controls
+any token.** There is no mint, no pause and no blacklist key on our side; those
+powers now sit with Onestable Limited for USDC.e, and WMSTC has no admin at all
+(it is a permissionless wrapper with no owner).
+
+What the admin key can do, and the accepted consequences:
+
+| Power | Held by | If the key is compromised | If the key is lost |
+| :--- | :--- | :--- | :--- |
+| `factory.setOwner`, `setFeeProtocol`, `collectProtocol` | factory owner | Divert accrued protocol fees | Fee switch is frozen as-is |
+| `descriptor.setBaseDescription` | descriptor owner | Rewrite every LP NFT's label | Metadata frozen as-is |
+| FeeRouter `setFeeConfig`, `queueFeeIncrease` | FeeRouter owner | Raise the swap fee, capped at 100 bps after a 2-day timelock | Fee frozen as-is |
+
+Note what is *not* in that table: no power to mint, freeze, or seize user
+funds. The worst a compromised admin key achieves is diverting protocol fees
+and defacing NFT metadata.
+
+The guards that make a single key workable are in place and are **not** a
+substitute for key hygiene:
+
+- `renounceOwnership()` reverts on the FeeRouter, so the role cannot be dropped.
+- Ownership transfer is two-step (`Ownable2Step`) on every contract RapidEX
+  wrote, so a mistyped successor cannot take the role.
+- The FeeRouter's fee is hard-capped at `MAX_FEE_BPS` (100 bps) and increases
+  require a 2-day timelock, so a fee change cannot be slipped in front of an
+  in-flight trade.
+
+One sharp edge has no on-chain guard: **`factory.setOwner` is one-step**
+(inherited from Uniswap V3, with only a zero-address check added). A mistyped
+address there permanently forfeits the protocol fee switch. Verify it twice.
+
+Because there is no second signer, the admin key's custody *is* the security
+model. Back it up, keep it offline, and treat any suspicion of exposure as a
+reason to rotate every role immediately.
+
+---
+
+## Deployed Contract Addresses
+
+**[`deployments.json`](./deployments.json) is the single source of truth.** It is the
+canonical manifest: every address in it was verified against on-chain runtime bytecode
+and by calling a distinguishing function, and each entry records how.
+
+No address table is kept here. A hand-maintained second copy is what produced the
+mislabelled table this file used to carry, so front-ends, scripts and integrations
+should read `deployments.json` directly:
+
+```bash
+npm run addresses                 # every live contract, with network header
+npm run addresses -- SwapRouter   # one address, bare, for shell substitution
+```
+
+`deployments.json` also carries a **`doNotUse`** list of superseded deployments.
+Several of those revert on `name()`/`symbol()` (they were built against Cancun, which
+this chain does not implement). Check any address you find elsewhere against that list
+before using it.
+
+---
+
+## Environment Setup
+
+Addresses come from `deployments.json`, so `.env` only needs the deploy-time secrets
+and knobs the Foundry scripts actually read:
 
 ```env
 RPC_URL=https://mariorpc.mstblockchain.com
-WS_RPC_URL=wss://mariorpc.mstblockchain.com
-CHAIN_ID=4646
-PRIVATE_KEY=0x<your_deployer_private_key>
+PRIVATE_KEY=<your_deployer_private_key>
 
-WMSTC_ADDRESS=0x56EdE2EbC789fD31f978DdA79D54d6B9e42f9eCD
-MUSDC_ADDRESS=0x3ac2105Fe12e4c75B3A6e5e5508A3F6716A9e8Ee
-V3_FACTORY_ADDRESS=0xd6987F8CabE051a73c8f5e0D62bb9F8E8D1DE478
-POSITION_DESCRIPTOR_ADDRESS=0xFeFE24529574df0247b32027118675a62bc0451E
-POSITION_MANAGER_ADDRESS=0xDdc9CD08Ec31e3a2e4DD169f067e367578ae6680
-SWAP_ROUTER_ADDRESS=0x3d74C817c85C3Fe463360EE3974c2715ADFFb6F7
-QUOTER_V2_ADDRESS=0x1350EfE8B3cd9cB0cb6D8c18cFF517dCc34e0C38
-LP_STATE_STORAGE_ADDRESS=0x1D966C1fFA4733bB609dEc55D749437bc9DDE285
+# script/DeployRapidEX.s.sol
+FEE_RECIPIENT=<address that receives RapidEXFeeRouter protocol fees>
+PROTOCOL_FEE_BPS=25      # optional, defaults to the script's DEFAULT_FEE_BPS
+EXPECTED_NONCE=          # optional, asserts deployer nonce so predicted addresses hold
+
+# script/SetupPools.s.sol
+POSITION_MANAGER=<NonfungiblePositionManager address from deployments.json>
+V3_FACTORY=<RapiddexV3Factory address from deployments.json>
 ```
-
-`PRIVATE_KEY` must be `0x`-prefixed; Foundry's `vm.envUint` rejects a bare hex string.
 
 ---
 
-## Commands
+## Commands & Usage
+
+This project uses **Foundry** for building, testing, and scripting.
+
+### 1. Build and Compile
+
+Compile all contracts (wrapper & core/periphery dependencies):
 
 ```bash
-forge build     # compile
+npm run build
+# OR directly via Forge:
+forge build
 ```
 
-### Deploying
+### 2. Test
 
 ```bash
-forge script script/DeployMainnet.s.sol:DeployMainnet \
-  --rpc-url https://mariorpc.mstblockchain.com \
-  --broadcast --legacy --gas-price 5000000000
+forge test            # whole suite
+forge test --summary  # per-suite pass/fail table
 ```
 
-`--legacy` and an explicit `--gas-price` are required. The chain reports an EIP-1559 base fee of
-zero, which makes Foundry's default fee estimation produce transactions priced at ~1 wei that are
-never mined.
+`test/V3Integration.t.sol` deploys the full 0.7.6 fork from artifacts and asserts the
+one invariant a V3 fork can silently break: `test_poolInitCodeHashMatchesDeployedPool`
+proves the hardcoded `POOL_INIT_CODE_HASH` in `PoolAddress.sol` still matches the
+factory's actual pool bytecode. Any change to `foundry.toml` — optimizer runs,
+`evm_version`, metadata settings — changes that bytecode, so run the suite after
+touching the build config or every swap and mint will fail against a fresh deployment.
 
-### Post-deploy checklist
+### 3. Debugging with Cast
 
-Already done:
+Use Foundry's `cast` utility to query state directly from MST Mainnet:
 
-- Blacklist protection set for `SwapRouter` and the current `NonfungiblePositionManager`. **This
-  is per-address and does not carry over.** Re-run it after any future position-manager redeploy.
-
-Still outstanding:
-
-1. **Protect each new pool**: `MUSDC.setBlacklistProtection(pool, true)`, as pools are created.
-   A blacklisted pool cannot send `MUSDC`, which strands every LP's capital in it.
-2. **Raise the oracle**: `pool.increaseObservationCardinalityNext(n)`. Pools open with cardinality
-   1 and store no usable price history, so any TWAP read is effectively a manipulable spot price.
-3. **Move admin roles to a multisig**: `MUSDC` owner, `MUSDC` blacklister, factory owner,
-   descriptor owner and `LPStateStorage` owner. A single EOA currently holds all of them, and can
-   mint up to `maxSupply`, pause transfers, blacklist addresses and control the fee switch.
-   Ownership transfers are two-step; the nominee must call `acceptOwnership()`.
-4. **Freeze position metadata** once final: `MinimalPositionDescriptor.freezeMetadata()`.
-5. **Regenerate** `deployments.json` and the table above from deployment output.
-
-### Debugging with cast
-
-```bash
-# pool price / tick state
-cast call <POOL_ADDRESS> "slot0()(uint160,int24,uint16,uint16,uint16,uint8,bool)" \
-  --rpc-url https://mariorpc.mstblockchain.com
-
-# token balance
-cast call 0x3ac2105Fe12e4c75B3A6e5e5508A3F6716A9e8Ee "balanceOf(address)(uint256)" <USER_ADDRESS> \
-  --rpc-url https://mariorpc.mstblockchain.com
-```
+*   **Read a pool's price/tick data:**
+    ```bash
+    cast call <POOL_ADDRESS> "slot0()(uint160,int24,uint16,uint16,uint16,uint8,bool)" --rpc-url https://mariorpc.mstblockchain.com
+    ```
+*   **Query a user's USDC.e balance** (address read from the manifest, not pasted):
+    ```bash
+    cast call "$(npm run --silent addresses -- 'USDC.e')" \
+      "balanceOf(address)(uint256)" <USER_ADDRESS> --rpc-url https://mariorpc.mstblockchain.com
+    ```
 
 ---
 
 ## Acknowledgements
 
 Rapiddex is a fork of the **Uniswap V3 Protocol** ([Uniswap V3 Core](https://github.com/Uniswap/v3-core) & [Uniswap V3 Periphery](https://github.com/Uniswap/v3-periphery)), adapted and deployed for the MST network. We gratefully acknowledge **Uniswap Labs** (© 2021 Uniswap Labs) for their pioneering work and open-source architecture.
+
+

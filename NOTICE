@@ -1,0 +1,61 @@
+RapidEX — third-party code attribution and modification notice
+==============================================================
+
+RapidEX is NOT affiliated with, endorsed by, or an official product of
+Uniswap Labs. "Uniswap" is a trademark of Uniswap Labs.
+
+
+Uniswap V3 Core  (lib/v3-core-main/)
+------------------------------------
+Copyright (c) 2021 Uniswap Labs
+Originally licensed under the Business Source License 1.1 (see
+lib/v3-core-main/LICENSE), with Change Date 2023-04-01 and Change License
+"GNU General Public License v2.0 or later".
+
+That Change Date has passed, so this work is available to RapidEX, and is
+redistributed by RapidEX, under GPL-2.0-or-later.
+
+Modifications made by RapidEX:
+  - Contract and interface identifiers renamed from Uniswap* to Rapiddex*
+    (e.g. UniswapV3Factory -> RapiddexV3Factory, UniswapV3Pool ->
+    RapiddexV3Pool, IUniswapV3SwapCallback -> IRapiddexV3SwapCallback).
+    These are naming changes only; the logic is unmodified.
+  - Build targets pinned for MST Mainnet compatibility (evm_version
+    "shanghai"; the chain does not implement the Cancun MCOPY opcode).
+
+No functional change has been made to the pool, factory, or tick/liquidity
+mathematics.
+
+
+Uniswap V3 Periphery  (lib/v3-periphery-main/)
+----------------------------------------------
+Copyright (c) 2021 Uniswap Labs
+Licensed under GPL-2.0-or-later (see lib/v3-periphery-main/LICENSE).
+
+Modifications made by RapidEX:
+  - Identifiers renamed from Uniswap* to Rapiddex*, as above.
+  - The ERC721 base used by NonfungiblePositionManager is pinned to the
+    OpenZeppelin v3.4.2 submodule (lib/openzeppelin-contracts-v3), replacing
+    a previously vendored copy with no verifiable upstream provenance.
+  - POOL_INIT_CODE_HASH in libraries/PoolAddress.sol is set to the hash of
+    RapidEX's own compiled pool bytecode, since RapidEX deploys its own
+    factory and pools rather than using Uniswap's deployments.
+
+
+Licensing consequences RapidEX accepts
+--------------------------------------
+Both works are GPL-2.0-or-later as used here. RapidEX therefore:
+  - preserves the upstream copyright notices and license texts in full;
+  - states its modifications (this file);
+  - licenses its own derivative contract code under GPL-2.0-or-later.
+
+RapidEX's independently authored contracts in src/ (WMSTC, MUSDC,
+MinimalPositionDescriptor, RapidEXFeeRouter) are original
+work and carry their own SPDX-License-Identifier: MIT headers. They are not
+derivatives of the Uniswap works.
+
+
+OpenZeppelin Contracts  (lib/openzeppelin-contracts-v5, -v3)
+------------------------------------------------------------
+Copyright (c) OpenZeppelin. Licensed under the MIT License.
+Used unmodified, as pinned git submodules.

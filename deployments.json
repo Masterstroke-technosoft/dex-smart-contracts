@@ -13,15 +13,25 @@
       "name": "Wrapped MSTC",
       "symbol": "WMSTC",
       "decimals": 18,
-      "verifiedBy": "name() returns \"Wrapped MSTC\"; runtime bytecode is an exact match for src/WMSTC.sol"
+      "verifiedBy": "name() returns \"Wrapped MSTC\"; runtime bytecode matched src/WMSTC.sol as of the deployment",
+      "sourceDrift": "AHEAD OF DEPLOYMENT. src/WMSTC.sol now has compareAndApprove() and a standard ERC-20 approve(); the live contract still enforces the old zero-first approve and has no compareAndApprove. The deployed bytecode no longer matches src/. Audit finding #4 is fixed in source only until this is redeployed."
     },
-    "MUSDC": {
-      "address": "0x3ac2105Fe12e4c75B3A6e5e5508A3F6716A9e8Ee",
-      "name": "MUSD Coin",
-      "symbol": "MUSDC",
+    "USDC.e": {
+      "address": "0x349d9836dd52c25e61Ae745e3da0F8989De63745",
+      "name": "Bridged USDC (Onestable Limited)",
+      "symbol": "USDC.e",
       "decimals": 6,
-      "maxSupply": "1000000000000000",
-      "verifiedBy": "name() returns \"MUSD Coin\"; decimals() returns 6; maxSupply() returns 1e15"
+      "thirdParty": true,
+      "issuer": "Onestable Limited",
+      "verifiedBy": "On-chain at chainId 4646: name() returns \"Bridged USDC (Onestable Limited)\", symbol() returns \"USDC.e\", decimals() returns 6, version() returns \"2\", currency() returns \"USD\". name()/symbol() do not revert, so it is not MCOPY-bricked on this chain.",
+      "implementation": "Circle FiatTokenV2, behind an upgradeable proxy. Implementation at deploy-review time: 0x3af574b74a19482997524d8eab8646ec27a8ad22 (zeppelinos proxy implementation slot).",
+      "notRapidexOwned": "RapidEX does NOT control this token. owner() and blacklister() are 0xf168C8765418743Ec0678ba83B8054B320F8dC62 and masterMinter() is 0xDC85294Ffa6067a285F6c298bf9229058d04b3e3, all Onestable Limited. RapidEX cannot mint it, cannot pause it, and cannot exempt anything from its blacklist.",
+      "risks": [
+        "Upgradeable proxy: the issuer can replace the token logic at any time, including transfer and allowance behaviour, without RapidEX's involvement.",
+        "No blacklist exemption: FiatTokenV2 has no protectedFromBlacklist equivalent, so the issuer CAN blacklist a RapidEX pool and strand both sides of its liquidity. This is audit finding #1's impact with no mitigation available — script/SetupPools.s.sol detects the missing function and skips exemption.",
+        "Standard ERC-20 approve: absolute overwrite, so the approval sandwich of audit finding #4 applies and cannot be fixed by RapidEX. It is the same exposure every USDC integration carries.",
+        "Issuer can pause: paused() is issuer-controlled; a pause reverts every swap leg touching USDC.e."
+      ]
     },
     "RapiddexV3Factory": {
       "address": "0xd6987F8CabE051a73c8f5e0D62bb9F8E8D1DE478",
@@ -42,13 +52,29 @@
     "QuoterV2": {
       "address": "0x1350EfE8B3cd9cB0cb6D8c18cFF517dCc34e0C38",
       "verifiedBy": "factory() and WETH9() resolve to the canonical factory and WMSTC"
-    },
-    "LPStateStorage": {
-      "address": "0x1D966C1fFA4733bB609dEc55D749437bc9DDE285",
-      "verifiedBy": "owner() returns the deployer"
     }
   },
   "doNotUse": [
+    {
+      "address": "0x3ac2105Fe12e4c75B3A6e5e5508A3F6716A9e8Ee",
+      "contract": "MUSDC",
+      "reason": "RETIRED. RapidEX's own mock stablecoin, replaced as the quote asset by the third-party bridged USDC.e at 0x349d9836dd52c25e61Ae745e3da0F8989De63745. Still live on-chain and still holds the legacy pools below, but no RapidEX surface references it. src/MUSDC.sol was removed with it."
+    },
+    {
+      "address": "0xC7DD7A5034041C8a90Df8e1712e63466527d962C",
+      "contract": "WMSTC/MUSDC 0.05% pool",
+      "reason": "LEGACY QUOTE ASSET. Priced against the retired MUSDC. Held ~4.15 WMSTC + ~8.08 MUSDC at changeover. LPs must withdraw here and re-add to the USDC.e pools; it is not routed by the frontend any more."
+    },
+    {
+      "address": "0x619F6aE7977AC74207B5FF02288bC62A15Ee79FB",
+      "contract": "WMSTC/MUSDC 0.3% pool",
+      "reason": "LEGACY QUOTE ASSET. Priced against the retired MUSDC. Held ~7.73 WMSTC + ~31.35 MUSDC at changeover. LPs must withdraw here and re-add to the USDC.e pools."
+    },
+    {
+      "address": "0x7C985D6c126ecC590E360d66b47C2b6ACDD8d851",
+      "contract": "WMSTC/MUSDC 1% pool",
+      "reason": "LEGACY QUOTE ASSET. Priced against the retired MUSDC. Held ~1.33 WMSTC + ~6.97 MUSDC at changeover. LPs must withdraw here and re-add to the USDC.e pools."
+    },
     {
       "address": "0x1e9cEde3552259622B4B4dfa42F392810F689D87",
       "contract": "WMST",
@@ -118,19 +144,27 @@
       "address": "0xA239A6DdE71014e3244262Ead9a905a516c69454",
       "contract": "MinimalPositionDescriptor",
       "reason": "Failed deployment, no code at address."
+    },
+    {
+      "address": "0x1D966C1fFA4733bB609dEc55D749437bc9DDE285",
+      "contract": "LPStateStorage",
+      "reason": "Deprecated and removed from the repo. It held an owner-written snapshot of a single position that nothing validated against the position manager or pool, so it could only ever disagree with chain state. Pool and position data are read directly on-chain (factory.getPool and positionManager.positions). Do not read this contract."
     }
   ],
   "build": {
     "evmVersion": "shanghai",
     "evmVersionReason": "MST Mainnet does not implement MCOPY. Raising this target produces contracts that deploy but revert on any function returning a dynamic string or bytes.",
-    "solc": { "contracts": "0.8.27", "v3Fork": "0.7.6" },
+    "solc": {
+      "contracts": "0.8.27",
+      "v3Fork": "0.7.6"
+    },
     "poolInitCodeHash": "0x99b5b5ba39aa8770c10671b453f28213b5e2a2249d46e02efb426afdcd66ea88",
     "openzeppelin": [
       {
         "version": "v5.1.0",
         "commit": "69c8def5f222ff96f2b5beff05dfba996368aa79",
         "path": "lib/openzeppelin-contracts-v5",
-        "usedBy": "src/ 0.8.x contracts (MUSDC, MinimalPositionDescriptor)"
+        "usedBy": "src/ 0.8.x contracts (MinimalPositionDescriptor, RapidEXFeeRouter)"
       },
       {
         "version": "v3.4.2",
@@ -142,13 +176,20 @@
   },
   "postDeploy": {
     "completed": [
-      "Blacklist protection set for SwapRouter and NonfungiblePositionManager"
+      "Blacklist protection was set for SwapRouter and NonfungiblePositionManager on the retired MUSDC. It carries no benefit now: the quote asset is USDC.e, which has no exemption mechanism at all."
     ],
-    "$note": "Blacklist protection must be re-applied whenever NonfungiblePositionManager is redeployed. MUSDC.protectedFromBlacklist is keyed by address and does not carry over.",
+    "$note": "There is NO blacklist-exemption step to perform any more. USDC.e is Circle FiatTokenV2 and exposes no protectedFromBlacklist equivalent, so RapidEX pools holding it are freezable by Onestable Limited and nothing on our side can prevent it. See contracts['USDC.e'].risks.",
+    "automated": [
+      "script/SetupPools.s.sol raises each new pool's observation cardinality to 10 in the same run, so no oracle follow-up is needed.",
+      "It also attempts a blacklist exemption for each pool, but feature-detects and SKIPS for USDC.e, which has no such function. The step only does real work for a quote asset that supports exemptions."
+    ],
     "outstanding": [
-      "Call MUSDC.setBlacklistProtection(pool, true) for each pool as it is created",
-      "Call pool.increaseObservationCardinalityNext(n) on any pool used as a price oracle",
-      "Move MUSDC owner, MUSDC blacklister, factory owner, descriptor owner and LPStateStorage owner to a multisig",
+      "BLOCKER: fund the deploy key before any pool can exist. Key 0x9B18dAF9b545Bf77eE2Fc699251c40D69C3a3e3e (from .env PRIVATE_KEY) holds 0 USDC.e and only 0.0000129 WMSTC; gas is fine at ~32 MSTC. RapidEX cannot mint a third-party bridged token, so USDC.e must be bridged or bought from Onestable Limited, and WMSTC obtained by wrapping MSTC",
+      "Create and seed WMSTC/USDC.e pools via script/SetupPools.s.sol. No pool exists at any fee tier yet (500/3000/10000 all return address(0)), so USDC.e is configured but not yet tradable",
+      "Tell existing LPs to withdraw from the three legacy WMSTC/MUSDC pools listed in doNotUse and re-add against USDC.e",
+      "REDEPLOY WMSTC to land the finding #4 allowance fix (compareAndApprove + ERC-20 compliant approve). It is live with liquidity, so this is a migration: new pools, LP position migration, holder balance migration, frontend addresses.json update, old address to doNotUse. Until then src/ is ahead of the chain — see contracts.WMSTC.sourceDrift",
+      "Do NOT switch the frontend to compareAndApprove before that redeploy — live WMSTC has no such function, and USDC.e never will since it is third-party",
+      "Keep the single admin key secure and backed up. RapidEX is single-admin by design and shared custody is declined. Since MUSDC was retired the admin controls NO token — no mint, no pause, no blacklist on our side — so the key now holds only factory ownership (the protocol fee switch), descriptor ownership and FeeRouter ownership. A compromise diverts protocol fees and can deface LP NFT metadata; it cannot mint, freeze or seize user funds.",
       "Call MinimalPositionDescriptor.freezeMetadata() once the description is final"
     ]
   }

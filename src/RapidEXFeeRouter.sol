@@ -37,18 +37,29 @@ contract RapidEXFeeRouter is Ownable2Step, ReentrancyGuard {
     uint256 public constant MAX_FEE_BPS = 100;
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
+    uint256 public constant FEE_INCREASE_DELAY = 2 days;
+
     IRapidexSwapRouter public immutable swapRouter;
 
     uint256 public feeBps;
     address public feeRecipient;
 
+    uint256 public pendingFeeBps;
+    uint256 public pendingFeeEffectiveAt;
+
     event FeeConfigUpdated(uint256 feeBps, address feeRecipient);
+    event FeeIncreaseQueued(uint256 feeBps, uint256 effectiveAt);
+    event FeeIncreaseCancelled(uint256 feeBps);
     event ProtocolFeeTaken(address indexed token, address indexed payer, uint256 amount);
 
     error ZeroAddress();
     error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
     error AmountInZero();
     error FeeConsumesEntireInput();
+    error FeeExceedsCallerLimit(uint256 feeBps, uint256 maxAccepted);
+    error NoPendingFeeIncrease();
+    error TimelockNotElapsed(uint256 effectiveAt);
+    error RenounceDisabled();
 
     constructor(
         address swapRouter_,
@@ -62,7 +73,33 @@ contract RapidEXFeeRouter is Ownable2Step, ReentrancyGuard {
     }
 
     function setFeeConfig(uint256 feeBps_, address feeRecipient_) external onlyOwner {
+        if (feeBps_ > feeBps) revert FeeTooHigh(feeBps_, feeBps);
         _setFeeConfig(feeBps_, feeRecipient_);
+    }
+
+    function queueFeeIncrease(uint256 feeBps_) external onlyOwner {
+        if (feeBps_ > MAX_FEE_BPS) revert FeeTooHigh(feeBps_, MAX_FEE_BPS);
+        if (feeBps_ <= feeBps) revert FeeTooHigh(feeBps_, feeBps);
+        if (feeRecipient == address(0)) revert ZeroAddress();
+        pendingFeeBps = feeBps_;
+        pendingFeeEffectiveAt = block.timestamp + FEE_INCREASE_DELAY;
+        emit FeeIncreaseQueued(feeBps_, pendingFeeEffectiveAt);
+    }
+
+    function cancelFeeIncrease() external onlyOwner {
+        if (pendingFeeEffectiveAt == 0) revert NoPendingFeeIncrease();
+        emit FeeIncreaseCancelled(pendingFeeBps);
+        pendingFeeBps = 0;
+        pendingFeeEffectiveAt = 0;
+    }
+
+    function applyFeeIncrease() external {
+        if (pendingFeeEffectiveAt == 0) revert NoPendingFeeIncrease();
+        if (block.timestamp < pendingFeeEffectiveAt) revert TimelockNotElapsed(pendingFeeEffectiveAt);
+        uint256 newFee = pendingFeeBps;
+        pendingFeeBps = 0;
+        pendingFeeEffectiveAt = 0;
+        _setFeeConfig(newFee, feeRecipient);
     }
 
     function _setFeeConfig(uint256 feeBps_, address feeRecipient_) private {
@@ -74,15 +111,24 @@ contract RapidEXFeeRouter is Ownable2Step, ReentrancyGuard {
         emit FeeConfigUpdated(feeBps_, feeRecipient_);
     }
 
+    function renounceOwnership() public view override onlyOwner {
+        revert RenounceDisabled();
+    }
+
+    function _requireFeeWithin(uint256 maxFeeBps) private view {
+        if (feeBps > maxFeeBps) revert FeeExceedsCallerLimit(feeBps, maxFeeBps);
+    }
+
     function quoteFee(uint256 amountIn) public view returns (uint256) {
         return (amountIn * feeBps) / BPS_DENOMINATOR;
     }
 
-    function exactInputSingle(IRapidexSwapRouter.ExactInputSingleParams calldata params)
+    function exactInputSingle(IRapidexSwapRouter.ExactInputSingleParams calldata params, uint256 maxFeeBps)
         external
         nonReentrant
         returns (uint256 amountOut)
     {
+        _requireFeeWithin(maxFeeBps);
         uint256 amountNet = _pullAndTakeFee(params.tokenIn, params.amountIn);
 
         IRapidexSwapRouter.ExactInputSingleParams memory p = params;
@@ -95,11 +141,16 @@ contract RapidEXFeeRouter is Ownable2Step, ReentrancyGuard {
         _clearApproval(params.tokenIn);
     }
 
-    function exactInput(IRapidexSwapRouter.ExactInputParams calldata params, address tokenIn)
+    function exactInput(
+        IRapidexSwapRouter.ExactInputParams calldata params,
+        address tokenIn,
+        uint256 maxFeeBps
+    )
         external
         nonReentrant
         returns (uint256 amountOut)
     {
+        _requireFeeWithin(maxFeeBps);
         require(_firstTokenOf(params.path) == tokenIn, "RapidEX: tokenIn mismatch");
 
         uint256 amountNet = _pullAndTakeFee(tokenIn, params.amountIn);
