@@ -147,9 +147,24 @@ reason to rotate every role immediately.
 canonical manifest: every address in it was verified against on-chain runtime bytecode
 and by calling a distinguishing function, and each entry records how.
 
-No address table is kept here. A hand-maintained second copy is what produced the
-mislabelled table this file used to carry, so front-ends, scripts and integrations
-should read `deployments.json` directly:
+| Contract | Address |
+| :--- | :--- |
+| WMSTC | `0x56EdE2EbC789fD31f978DdA79D54d6B9e42f9eCD` |
+| USDC.e | `0x349d9836dd52c25e61Ae745e3da0F8989De63745` |
+| RapiddexV3Factory | `0xd6987F8CabE051a73c8f5e0D62bb9F8E8D1DE478` |
+| MinimalPositionDescriptor | `0xFeFE24529574df0247b32027118675a62bc0451E` |
+| NonfungiblePositionManager | `0xDdc9CD08Ec31e3a2e4DD169f067e367578ae6680` |
+| SwapRouter | `0x3d74C817c85C3Fe463360EE3974c2715ADFFb6F7` |
+| QuoterV2 | `0x1350EfE8B3cd9cB0cb6D8c18cFF517dCc34e0C38` |
+
+`RapidEXFeeRouter` is not in this table because it is not deployed yet — see the
+note on it under [Core Contracts](#core-contracts) above.
+
+This table is a convenience copy. If it ever disagrees with `deployments.json`,
+`deployments.json` is correct — it's regenerated from deployment output, this
+table is hand-updated, and that asymmetry is exactly how the table this file
+used to carry went stale. Front-ends, scripts and integrations should still
+read `deployments.json` directly, not this table:
 
 ```bash
 npm run addresses                 # every live contract, with network header
