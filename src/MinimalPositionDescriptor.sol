@@ -1,38 +1,51 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
 
-/// @notice Minimal metadata descriptor for Rapidex V3 position NFTs.
-/// @dev The official SVG descriptor can be swapped in later; this keeps deployment small
-/// and avoids extra descriptor-only dependencies while preserving ERC721 tokenURI support.
-contract MinimalPositionDescriptor {
+pragma solidity =0.8.27;
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
+contract MinimalPositionDescriptor is Ownable2Step {
     string private _baseDescription;
+    bool public metadataFrozen;
 
-    constructor(string memory baseDescription_) {
+    event BaseDescriptionUpdated(string oldDescription, string newDescription);
+    event MetadataFrozen();
+
+    error MetadataIsFrozen();
+
+    constructor(string memory baseDescription_, address initialOwner) Ownable(initialOwner) {
         _baseDescription = baseDescription_;
     }
 
-    function tokenURI(address, uint256 tokenId) external view returns (string memory) {
-        return string.concat(_baseDescription, " #", _toString(tokenId));
+    function freezeMetadata() external onlyOwner {
+        metadataFrozen = true;
+        emit MetadataFrozen();
     }
 
-    function _toString(uint256 value) private pure returns (string memory) {
-        if (value == 0) return "0";
+    function setBaseDescription(string memory newDescription) external onlyOwner {
+        if (metadataFrozen) revert MetadataIsFrozen();
+        emit BaseDescriptionUpdated(_baseDescription, newDescription);
+        _baseDescription = newDescription;
+    }
 
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
+    function baseDescription() external view returns (string memory) {
+        return _baseDescription;
+    }
 
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            // forge-lint: disable-next-line(unsafe-typecast)
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-
-        return string(buffer);
+    function tokenURI(address, uint256 tokenId) external view returns (string memory) {
+        string memory label = string.concat(_baseDescription, " #", Strings.toString(tokenId));
+        string memory json = string.concat(
+            '{"name":"',
+            label,
+            '","description":"',
+            _baseDescription,
+            '. This NFT represents a liquidity position in a Rapiddex V3 pool. The owner can modify or redeem the position.","attributes":[{"trait_type":"Token ID","value":"',
+            Strings.toString(tokenId),
+            '"}]}'
+        );
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
     }
 }
